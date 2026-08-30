@@ -328,7 +328,9 @@ set (PIPEDAL_SOURCES
     PluginType.hpp PluginType.cpp
     PiPedalSocket.hpp PiPedalSocket.cpp
     PiPedalVersion.hpp PiPedalVersion.cpp
-    PiPedalModel.hpp PiPedalModel.cpp 
+    PiPedalModel.hpp PiPedalModel.cpp
+    PiPedalModelSubscriberBase.hpp
+    MidiFeedbackController.hpp MidiFeedbackController.cpp
     Pedalboard.hpp Pedalboard.cpp
     Presets.hpp Presets.cpp
     Storage.hpp Storage.cpp

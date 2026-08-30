@@ -50,6 +50,7 @@
 
 #include <systemd/sd-daemon.h>
 #include "AlsaSequencer.hpp"
+#include "MidiFeedbackController.hpp"
 
 using namespace pipedal;
 
@@ -446,6 +447,11 @@ int main(int argc, char *argv[])
 #endif
 
             model.Load();
+
+            // MIDI state feedback out (LED/label sync for MIDI foot controllers).
+            auto midiFeedbackController = MidiFeedbackController::Create(model);
+            model.AddNotificationSubscription(midiFeedbackController);
+            midiFeedbackController->Start();
 
             auto pipedalSocketFactory = MakePiPedalSocketFactory(model);
 
