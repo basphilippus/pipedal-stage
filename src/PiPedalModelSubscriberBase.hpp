@@ -60,6 +60,7 @@ namespace pipedal
         void OnFavoritesChanged(const std::map<std::string, bool> &favorites) override {}
         void OnShowStatusMonitorChanged(bool show) override {}
         void OnSystemMidiBindingsChanged(const std::vector<MidiBinding> &bindings) override {}
+        void OnFootswitchConfigChanged(const std::string &footswitchConfig) override {}
         void OnNotifyPathPatchPropertyChanged(int64_t instanceId, const std::string &pathPatchPropertyString, const std::string &atomString) override {}
         void OnErrorMessage(const std::string &message) override {}
         void OnTone3000DownloadStarted(int64_t handle, const std::string &title) override {}

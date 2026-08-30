@@ -1615,6 +1615,26 @@ bool PiPedalModel::GetShowStatusMonitor()
     return storage.GetShowStatusMonitor();
 }
 
+void PiPedalModel::SetFootswitchConfig(const std::string &footswitchConfig)
+{
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex); // copy atomically.
+        storage.SetFootswitchConfig(footswitchConfig);
+
+        // Notify clients.
+        std::vector<IPiPedalModelSubscriber::ptr> t{subscribers.begin(), subscribers.end()};
+        for (auto &subscriber : t)
+        {
+            subscriber->OnFootswitchConfigChanged(footswitchConfig);
+        }
+    }
+}
+std::string PiPedalModel::GetFootswitchConfig()
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex); // copy atomically.
+    return storage.GetFootswitchConfig();
+}
+
 JackConfiguration PiPedalModel::GetJackConfiguration()
 {
     std::lock_guard<std::recursive_mutex> lock(mutex); // copy atomically.

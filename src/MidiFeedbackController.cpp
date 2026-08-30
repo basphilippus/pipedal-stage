@@ -27,6 +27,8 @@
 
 #include <alsa/asoundlib.h>
 
+#include <algorithm>
+
 using namespace pipedal;
 
 namespace
@@ -40,6 +42,7 @@ namespace
     constexpr uint8_t SYSEX_VERSION = 0x01;
     constexpr uint8_t SYSEX_CMD_SET_SWITCH = 0x01;
     constexpr uint8_t SYSEX_CMD_CLEAR_ALL = 0x02;
+    constexpr uint8_t SYSEX_CMD_SET_PC_LABEL = 0x03;
 
     // LED color codes shared with the controller firmware.
     constexpr uint8_t COLOR_WHITE = 0;
@@ -236,14 +239,24 @@ void MidiFeedbackController::Start()
             {
                 return;
             }
-            // Give the kernel a moment to finish creating the device's ports.
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            Event reconnect;
-            reconnect.type = EvType::Reconnect;
-            reconnect.connectionIds = ids;
-            Enqueue(std::move(reconnect));
-            Pedalboard pedalboard = model.GetCurrentPedalboardCopy();
-            OnPedalboardChanged(CLIENT_ID, pedalboard);
+            // The device's MIDI stack (CircuitPython on the MIDI Captain)
+            // takes several seconds to boot after USB enumeration; refresh
+            // twice so cold boots reliably receive their state.
+            for (int attempt = 0; attempt < 2; ++attempt)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(attempt == 0 ? 3000 : 5000));
+                Event reconnect;
+                reconnect.type = EvType::Reconnect;
+                reconnect.connectionIds = ids;
+                Enqueue(std::move(reconnect));
+                Pedalboard pedalboard = model.GetCurrentPedalboardCopy();
+                OnPedalboardChanged(CLIENT_ID, pedalboard);
+                lastProgramSent = -1; // force PC resend so the preset banner populates
+                lastSentPcLabels.clear(); // device may have rebooted; resend names
+                PresetIndex presets;
+                model.GetPresets(&presets);
+                OnPresetsChanged(CLIENT_ID, presets);
+            }
         });
 }
 
@@ -329,6 +342,41 @@ std::vector<uint8_t> MidiFeedbackController::MakeClearAllSysEx()
     return {0xF0, SYSEX_MFR_ID, SYSEX_TAG_0, SYSEX_TAG_1, SYSEX_VERSION, SYSEX_CMD_CLEAR_ALL, 0xF7};
 }
 
+std::vector<uint8_t> MidiFeedbackController::MakePcLabelSysEx(uint8_t program, const std::string &name)
+{
+    std::string label = SanitizeLabel(name);
+    std::vector<uint8_t> frame;
+    frame.reserve(10 + label.size());
+    frame.insert(frame.end(), {0xF0, SYSEX_MFR_ID, SYSEX_TAG_0, SYSEX_TAG_1, SYSEX_VERSION,
+                               SYSEX_CMD_SET_PC_LABEL,
+                               (uint8_t)(program & 0x7F),
+                               (uint8_t)label.size()});
+    for (char c : label)
+    {
+        frame.push_back((uint8_t)c);
+    }
+    frame.push_back(0xF7);
+    return frame;
+}
+
+void MidiFeedbackController::EnqueuePresetLabels(const PresetIndex &presets)
+{
+    const auto &entries = presets.presets();
+    for (size_t i = 0; i < entries.size() && i < 8; ++i)
+    {
+        auto found = lastSentPcLabels.find((uint8_t)i);
+        if (found != lastSentPcLabels.end() && found->second == entries[i].name())
+        {
+            continue; // unchanged since last send
+        }
+        lastSentPcLabels[(uint8_t)i] = entries[i].name();
+        Event event;
+        event.type = EvType::SendSysEx;
+        event.sysex = MakePcLabelSysEx((uint8_t)i, entries[i].name());
+        Enqueue(std::move(event));
+    }
+}
+
 void MidiFeedbackController::Enqueue(Event &&event)
 {
     {
@@ -379,6 +427,27 @@ void MidiFeedbackController::EnqueueFullRefresh()
 {
     Enqueue(Event{.type = EvType::ClearCache});
 
+    // Turn off switches whose binding disappeared with this refresh (e.g. the
+    // new preset doesn't bind them) — otherwise their LEDs keep stale state.
+    std::vector<uint16_t> currentKeys;
+    for (const BypassBinding &binding : bindings)
+    {
+        currentKeys.push_back((uint16_t)((ResolveChannel(binding.channel) << 8) | (binding.cc & 0x7F)));
+    }
+    for (uint16_t staleKey : lastRefreshKeys)
+    {
+        if (std::find(currentKeys.begin(), currentKeys.end(), staleKey) == currentKeys.end())
+        {
+            Event event;
+            event.type = EvType::SendCC;
+            event.channel = (uint8_t)(staleKey >> 8);
+            event.d1 = (uint8_t)(staleKey & 0x7F);
+            event.d2 = 0;
+            Enqueue(std::move(event));
+        }
+    }
+    lastRefreshKeys = std::move(currentKeys);
+
     // LED states. Look the enabled state up from a fresh copy so refreshes
     // triggered outside OnPedalboardChanged stay correct.
     Pedalboard board = model.GetCurrentPedalboardCopy();
@@ -413,6 +482,7 @@ void MidiFeedbackController::EnqueueFullRefresh()
         setSwitch.sysex = MakeSetSwitchSysEx(binding);
         Enqueue(std::move(setSwitch));
     }
+
 }
 
 void MidiFeedbackController::OnItemEnabledChanged(int64_t clientId, int64_t pedalItemId, bool enabled)
@@ -466,9 +536,10 @@ void MidiFeedbackController::OnPresetsChanged(int64_t clientId, const PresetInde
                 event.d1 = (uint8_t)i;
                 Enqueue(std::move(event));
             }
-            return;
+            break;
         }
     }
+    EnqueuePresetLabels(presets);
 }
 
 void MidiFeedbackController::OnAlsaSequencerConfigurationChanged(const AlsaSequencerConfiguration &configuration)

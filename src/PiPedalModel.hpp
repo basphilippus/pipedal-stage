@@ -91,6 +91,7 @@ namespace pipedal
         virtual void OnFavoritesChanged(const std::map<std::string, bool> &favorites) = 0;
         virtual void OnShowStatusMonitorChanged(bool show) = 0;
         virtual void OnSystemMidiBindingsChanged(const std::vector<MidiBinding> &bindings) = 0;
+        virtual void OnFootswitchConfigChanged(const std::string &footswitchConfig) = 0;
         virtual void OnNotifyPathPatchPropertyChanged(int64_t instanceId, const std::string &pathPatchPropertyString, const std::string &atomString) = 0;
 
         // virtual void OnPatchPropertyChanged(int64_t clientId, int64_t instanceId,const std::string& propertyUri,const json_variant& value) = 0;
@@ -443,6 +444,8 @@ namespace pipedal
 
         void SetShowStatusMonitor(bool show);
         bool GetShowStatusMonitor();
+        void SetFootswitchConfig(const std::string &footswitchConfig);
+        std::string GetFootswitchConfig();
 
         void SetWifiConfigSettings(const WifiConfigSettings &wifiConfigSettings);
         WifiConfigSettings GetWifiConfigSettings();

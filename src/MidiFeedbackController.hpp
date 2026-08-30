@@ -39,8 +39,9 @@
 //
 // SysEx protocol (version 1, non-commercial mfr id 0x7D):
 //   header:     F0 7D 50 50 01
-//   SET_SWITCH: 01 <cc 0-119> <channel 0-15> <color 0-8> <labelLen 0-8> <ascii...> F7
-//   CLEAR_ALL:  02 F7
+//   SET_SWITCH:   01 <cc 0-119> <channel 0-15> <color 0-8> <labelLen 0-16> <ascii...> F7
+//   CLEAR_ALL:    02 F7
+//   SET_PC_LABEL: 03 <program 0-127> <labelLen 0-16> <ascii...> F7
 // The receiving firmware ignores frames not starting with the full header.
 
 namespace pipedal
@@ -73,7 +74,7 @@ namespace pipedal
 
         // Sentinel client id: web clients are >= 0, MIDI-origin notifications use -1.
         static constexpr int64_t CLIENT_ID = -2;
-        static constexpr size_t MAX_LABEL_LENGTH = 8;
+        static constexpr size_t MAX_LABEL_LENGTH = 16;
 
         enum class EvType
         {
@@ -109,6 +110,8 @@ namespace pipedal
         std::vector<BypassBinding> bindings;
         int32_t configMidiChannel = -1;
         std::vector<std::string> connectionIds;
+        std::vector<uint16_t> lastRefreshKeys; // (channel<<8)|cc sent in the previous refresh
+        std::unordered_map<uint8_t, std::string> lastSentPcLabels;
         int64_t lastProgramSent = -1;
         bool started = false;
         bool closed = false;
@@ -133,6 +136,8 @@ namespace pipedal
 
         std::vector<uint8_t> MakeSetSwitchSysEx(const BypassBinding &binding) const;
         static std::vector<uint8_t> MakeClearAllSysEx();
+        static std::vector<uint8_t> MakePcLabelSysEx(uint8_t program, const std::string &name);
+        void EnqueuePresetLabels(const PresetIndex &presets);
 
         void SenderThreadProc(std::stop_token stopToken);
     };

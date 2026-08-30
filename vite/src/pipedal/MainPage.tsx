@@ -27,6 +27,7 @@ import ButtonBase from '@mui/material/ButtonBase';
 import PluginIcon, { getIconColor } from './PluginIcon';
 
 import ToolTipEx from './ToolTipEx';
+import FootswitchSelector from './FootswitchSelector';
 import { PiPedalModel, PiPedalModelFactory } from './PiPedalModel';
 import {
     Pedalboard, PedalboardItem, PedalboardSplitItem, SplitType
@@ -676,12 +677,13 @@ export const MainPage =
                                     display: "flex", flexFlow: "row nowrap", alignItems: "center", justifyContent: "center", minWidth: 0,
                                     width: "100%", height: 48, paddingLeft: 16, paddingRight: 16
                                 }} >
-                                    <div style={{ flex: "0 0 auto", width: this.state.splitControlBar ? undefined : 60 }} >
-                                        <div style={{ display: bypassVisible ? "block" : "none", width: this.state.splitControlBar ? undefined : 60 }} >
+                                    <div style={{ flex: "0 0 auto" }} >
+                                        <div style={{ display: bypassVisible ? "flex" : "none", flexFlow: "row nowrap", alignItems: "center" }} >
                                             <ToolTipEx title="Bypass"
                                             >
                                                 <Switch color="secondary" checked={bypassChecked} onChange={this.handleEnableCurrentItemChanged} />
                                             </ToolTipEx>
+                                            <FootswitchSelector pedalboardItem={pedalboardItem} />
                                         </div>
                                     </div>
                                     {

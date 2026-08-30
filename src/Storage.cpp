@@ -1601,6 +1601,15 @@ bool Storage::GetShowStatusMonitor() const
 {
     return this->userSettings.showStatusMonitor_;
 }
+void Storage::SetFootswitchConfig(const std::string &footswitchConfig)
+{
+    this->userSettings.footswitchConfig_ = footswitchConfig;
+    SaveUserSettings();
+}
+std::string Storage::GetFootswitchConfig() const
+{
+    return this->userSettings.footswitchConfig_;
+}
 
 std::string Storage::GetGovernorSettings() const
 {
@@ -3414,6 +3423,7 @@ const ChannelSelection& Storage::GetChannelSelection() const
 JSON_MAP_BEGIN(UserSettings)
 JSON_MAP_REFERENCE(UserSettings, governor)
 JSON_MAP_REFERENCE(UserSettings, showStatusMonitor)
+JSON_MAP_REFERENCE(UserSettings, footswitchConfig)
 JSON_MAP_END()
 
 JSON_MAP_BEGIN(CurrentPreset)
