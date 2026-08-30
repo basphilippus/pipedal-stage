@@ -19,6 +19,7 @@
 
 
 import './AppThemed.css';
+import OnScreenKeyboard, { onScreenKeyboardEnabled } from './OnScreenKeyboard';
 
 //import {alpha} from '@mui/material/styles';
 import AppBar from '@mui/material/AppBar';
@@ -798,6 +799,7 @@ export
                     }
                 }}
             >
+                {onScreenKeyboardEnabled() && (<OnScreenKeyboard />)}
                 {this.state.performanceView ? (
                     <PerformanceView open={this.state.performanceView}
                         onClose={() => { this.setState({ performanceView: false }); }}
