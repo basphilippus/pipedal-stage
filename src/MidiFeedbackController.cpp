@@ -120,6 +120,14 @@ namespace
             std::string wantClient = slash == std::string::npos ? rest : rest.substr(0, slash);
             std::string wantPort = slash == std::string::npos ? std::string() : rest.substr(slash + 1);
 
+            // Never send feedback into loopback or PiPedal-owned clients:
+            // "Midi Through" routes straight back into PiPedal's own input,
+            // turning every feedback CC into a phantom foot-switch press.
+            if (wantClient == "Midi Through" || wantClient.rfind("PiPedal", 0) == 0)
+            {
+                continue;
+            }
+
             SeqAddr exactMatch;
             SeqAddr fallbackMatch;
 
@@ -349,12 +357,15 @@ void MidiFeedbackController::RebuildBindings(const Pedalboard &pedalboard)
     {
         for (const MidiBinding &midiBinding : item->midiBindings())
         {
-            if (midiBinding.bindingType() != BINDING_TYPE_CONTROL || midiBinding.symbol() != BYPASS_SYMBOL)
+            // All CONTROL-type bindings get LED feedback: __bypass and
+            // toggle-ish plugin controls alike (e.g. a tuner's Mute).
+            if (midiBinding.bindingType() != BINDING_TYPE_CONTROL)
             {
                 continue;
             }
             BypassBinding binding;
             binding.instanceId = item->instanceId();
+            binding.symbol = midiBinding.symbol();
             binding.channel = midiBinding.channel();
             binding.cc = midiBinding.control();
             binding.color = ColorForUri(item->uri());
@@ -373,8 +384,21 @@ void MidiFeedbackController::EnqueueFullRefresh()
     Pedalboard board = model.GetCurrentPedalboardCopy();
     for (const BypassBinding &binding : bindings)
     {
-        const PedalboardItem *item = board.GetItem(binding.instanceId);
-        EnqueueBindingState(binding, item ? item->isEnabled() : false);
+        PedalboardItem *item = board.GetItem(binding.instanceId);
+        bool on = false;
+        if (item)
+        {
+            if (binding.symbol == BYPASS_SYMBOL)
+            {
+                on = item->isEnabled();
+            }
+            else
+            {
+                const ControlValue *controlValue = item->GetControlValue(binding.symbol);
+                on = controlValue != nullptr && controlValue->value() >= 0.5f;
+            }
+        }
+        EnqueueBindingState(binding, on);
     }
 
     // Labels and colors.
@@ -395,11 +419,29 @@ void MidiFeedbackController::OnItemEnabledChanged(int64_t clientId, int64_t peda
 {
     for (const BypassBinding &binding : bindings)
     {
-        if (binding.instanceId == pedalItemId)
+        if (binding.instanceId == pedalItemId && binding.symbol == BYPASS_SYMBOL)
         {
             EnqueueBindingState(binding, enabled);
         }
     }
+}
+
+void MidiFeedbackController::OnControlChanged(int64_t clientId, int64_t pedalItemId, const std::string &symbol, float value)
+{
+    for (const BypassBinding &binding : bindings)
+    {
+        if (binding.instanceId == pedalItemId && binding.symbol == symbol)
+        {
+            EnqueueBindingState(binding, value >= 0.5f);
+        }
+    }
+}
+
+void MidiFeedbackController::OnMidiValueChanged(int64_t instanceId, const std::string &symbol, float value)
+{
+    // MIDI-origin control changes (the pedal's own stomps) arrive here rather
+    // than through OnControlChanged.
+    OnControlChanged(CLIENT_ID, instanceId, symbol, value);
 }
 
 void MidiFeedbackController::OnPedalboardChanged(int64_t clientId, const Pedalboard &pedalboard)
@@ -566,19 +608,14 @@ void MidiFeedbackController::SenderThreadProc(std::stop_token stopToken)
             {
                 break;
             }
-            uint16_t key = (uint16_t)((event.channel << 8) | event.d1);
-            auto found = lastSent.find(key);
-            if (found != lastSent.end() && found->second == event.d2)
-            {
-                break; // anti-echo: identical value already sent
-            }
+            // No identical-value suppression: the controller's local LED can
+            // drift from our last-sent value (e.g. momentary switches reset
+            // their LED on release), and the firmware never re-transmits
+            // received CCs, so redundant sends are loop-safe and idempotent.
             snd_seq_event_t ev;
             snd_seq_ev_clear(&ev);
             snd_seq_ev_set_controller(&ev, event.channel, event.d1, event.d2);
-            if (sendEvent(ev))
-            {
-                lastSent[key] = event.d2;
-            }
+            sendEvent(ev);
             break;
         }
         case EvType::SendPC:

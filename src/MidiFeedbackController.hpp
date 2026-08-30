@@ -62,6 +62,8 @@ namespace pipedal
         int64_t GetClientId() override { return CLIENT_ID; }
         void Close() override;
         void OnItemEnabledChanged(int64_t clientId, int64_t pedalItemId, bool enabled) override;
+        void OnControlChanged(int64_t clientId, int64_t pedalItemId, const std::string &symbol, float value) override;
+        void OnMidiValueChanged(int64_t instanceId, const std::string &symbol, float value) override;
         void OnPedalboardChanged(int64_t clientId, const Pedalboard &pedalboard) override;
         void OnPresetsChanged(int64_t clientId, const PresetIndex &presets) override;
         void OnAlsaSequencerConfigurationChanged(const AlsaSequencerConfiguration &configuration) override;
@@ -95,7 +97,8 @@ namespace pipedal
         struct BypassBinding
         {
             int64_t instanceId = -1;
-            int channel = -1; // -1 = follow config midiChannel
+            std::string symbol; // "__bypass" or a plugin control symbol
+            int channel = -1;   // -1 = follow config midiChannel
             int cc = 0;
             uint8_t color = 0;
             std::string label;
