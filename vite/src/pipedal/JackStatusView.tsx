@@ -20,6 +20,8 @@
 import React from 'react';
 import { PiPedalModel, PiPedalModelFactory,State } from './PiPedalModel';
 import JackHostStatus from './JackHostStatus';
+import { isStageTheme } from './DarkMode';
+import { STAGE } from './StageTheme';
 
 
 
@@ -76,6 +78,28 @@ export default class JackStatusView extends React.Component<JackStatusViewProps,
     }
 
     render() {
+        if (isStageTheme()) {
+            // Stage: no permanent diagnostics readout. Show a small chip only when
+            // something is wrong (recent xrun, audio stopped, SoC too hot).
+            let st = this.state.jackStatus;
+            if (!st) return null;
+            let recentXrun = st.msSinceLastUnderrun >= 0 && st.msSinceLastUnderrun < 15 * 1000;
+            let hot = st.temperaturemC > 75000;
+            let down = !st.active || st.restarting;
+            if (!recentXrun && !hot && !down) return null;
+            let text = down ? "AUDIO STOPPED"
+                : (recentXrun ? "XRUN " + st.underruns : "") + (recentXrun && hot ? " · " : "") + (hot ? Math.round(st.temperaturemC / 1000) + "°C" : "");
+            return (
+                <div style={{
+                    position: "absolute", right: 16, bottom: 110, zIndex: 10,
+                    padding: "4px 10px", borderRadius: 6,
+                    background: "rgba(255,77,77,0.12)", border: "1px solid rgba(255,77,77,0.5)", color: "#ff6b6b",
+                    fontFamily: STAGE.displayFont, fontSize: 12, letterSpacing: "0.08em", whiteSpace: "nowrap",
+                }}>
+                    {text}
+                </div>
+            );
+        }
         return (
             <div style={{
                 position: "absolute", right: 30, bottom: 2,left: 30, height: 30, 
