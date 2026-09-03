@@ -29,6 +29,14 @@
         const androidHosted = !!(window.AndroidHost);
 
 
+        // "?theme=stage|dark|light|system" seeds the stored preference (mirrors DarkMode.tsx).
+        try {
+            let themeParam = new URL(window.location.href).searchParams.get("theme");
+            if (themeParam) {
+                let seeded = { stage: "Stage", dark: "Dark", light: "Light", system: "System" }[themeParam.toLowerCase()];
+                if (seeded) localStorage.setItem("colorScheme", seeded);
+            }
+        } catch (e) { }
         var colorScheme = localStorage.getItem("colorScheme");
         if (androidHosted) {
             var hostColorScheme = window.AndroidHost.getThemePreference();
@@ -71,6 +79,17 @@
                 break;
             case "System":
                 useSystem = true;
+                break;
+            case "Stage":
+                darkMode = true;
+                // Stage theme: near-black ground + its display fonts (only loaded when selected).
+                let bgStyle = document.getElementById("bgStyle");
+                if (bgStyle) bgStyle.textContent = "BODY { background: #0e0f11; overscroll-behavior: none; }";
+                for (let href of ["/fonts/nexa/stylesheet.css", "/fonts/questrial/stylesheet.css"]) {
+                    let link = document.createElement("link");
+                    link.rel = "stylesheet"; link.href = href;
+                    document.head.appendChild(link);
+                }
                 break;
         }
         if (useSystem) {

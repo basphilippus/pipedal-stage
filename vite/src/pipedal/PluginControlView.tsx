@@ -278,7 +278,7 @@ const styles = (theme: Theme) => createStyles({
         paddingRight: 8,
         paddingTop: 0,
         paddingBottom: 0,
-        border: "2pt #AAA solid",
+        border: theme.stage ? `1px solid ${theme.palette.divider}` : "2pt #AAA solid",
         borderRadius: 8,
         elevation: 12,
         display: "flex",
@@ -297,7 +297,7 @@ const styles = (theme: Theme) => createStyles({
 
         paddingTop: 0,
         paddingBottom: 0,
-        border: "2pt #AAA solid",
+        border: theme.stage ? `1px solid ${theme.palette.divider}` : "2pt #AAA solid",
         borderRadius: 8,
         elevation: 12,
         display: "inline-flex",

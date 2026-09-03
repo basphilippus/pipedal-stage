@@ -51,7 +51,7 @@ import MidiBindingsDialog from './MidiBindingsDialog';
 import PluginPresetSelector from './PluginPresetSelector';
 import OldDeleteIcon from "./svg/old_delete_outline_24dp.svg?react";
 import MidiIcon from "./svg/ic_midi.svg?react";
-import { isDarkMode } from './DarkMode';
+import { isDarkMode, isStageTheme } from './DarkMode';
 import Snapshot0Icon from "./svg/snapshot_0.svg?react";
 import Snapshot1Icon from "./svg/snapshot_1.svg?react";
 import Snapshot2Icon from "./svg/snapshot_2.svg?react";
@@ -737,7 +737,7 @@ export const MainPage =
                                                     startIcon={<InputIcon />}
                                                     style={{
                                                         textTransform: "none",
-                                                        background: (isDarkMode() ? "#6750A4" : undefined)
+                                                        background: (isStageTheme() ? undefined : isDarkMode() ? "#6750A4" : undefined)
                                                     }}
                                                 >
                                                     Load

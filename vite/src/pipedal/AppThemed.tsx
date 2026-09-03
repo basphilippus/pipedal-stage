@@ -65,7 +65,7 @@ import { BankIndex, BankIndexEntry } from './Banks';
 import RenameDialog from './RenameDialog';
 import JackStatusView from './JackStatusView';
 import { type Theme } from '@mui/material/styles';
-import { isDarkMode } from './DarkMode';
+import { isDarkMode, isStageTheme } from './DarkMode';
 import UpdateDialog from './UpdateDialog';
 
 import RenameOutlineIcon from './svg/drive_file_rename_outline_black_24dp.svg?react';
@@ -1121,7 +1121,7 @@ export
                             bottom: "0px",
                             opacity: 0.8,
                             background:
-                                isDarkMode() ? "#222" : "#EEE",
+                                isStageTheme() ? "#17181b" : isDarkMode() ? "#222" : "#EEE",
                         }} />
                         <div style={{ flex: "2 2 3px", height: 20 }} >&nbsp;</div>
                         <div className={classes.errorMessageBox} style={{ position: "relative" }} >
@@ -1161,7 +1161,7 @@ export
                             bottom: "0px",
                             opacity: 0.8,
                             background:
-                                isDarkMode() ? "#222" : "#EEE",
+                                isStageTheme() ? "#17181b" : isDarkMode() ? "#222" : "#EEE",
 
                         }} />
                         <div className={classes.loadingBox}>

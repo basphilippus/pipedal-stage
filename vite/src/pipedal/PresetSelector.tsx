@@ -73,8 +73,12 @@ const selectColor = isDarkMode() ? "#888" : "#FFFFFF";
 
 const styles = (theme: Theme) => createStyles({
     select: { // fu fu fu.Overrides for white selector on dark background.
+        // Stage theme: the preset name is the headline of the screen.
+        fontFamily: theme.stage ? "'Nexa', 'Roboto', sans-serif" : undefined,
+        fontSize: theme.stage ? 20 : undefined,
+        letterSpacing: theme.stage ? "0.03em" : undefined,
         '&:before': {
-            borderColor: selectColor,
+            borderColor: theme.stage ? theme.palette.divider : selectColor,
         },
         '&:after': {
             borderColor: selectColor,

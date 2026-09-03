@@ -36,7 +36,7 @@ import ZoomedUiControl from './ZoomedUiControl'
 import MainPage from './MainPage';
 import JackStatusView from './JackStatusView';
 import { Theme } from '@mui/material/styles';
-import { isDarkMode } from './DarkMode';
+import { isDarkMode, isStageTheme } from './DarkMode';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import { Snapshot } from './Pedalboard';
@@ -274,7 +274,7 @@ const SnapshotEditor = withStyles(
                     }}
                 >
                     <CssBaseline />
-                    <AppBar position="static" sx={{ bgcolor: isDarkMode() ? getBackgroundColor("purple") : "#200040" }} >
+                    <AppBar position="static" sx={{ bgcolor: isStageTheme() ? "#17181b" : isDarkMode() ? getBackgroundColor("purple") : "#200040" }} >
                         <Toolbar variant="dense"  >
                             <IconButtonEx
                                 tooltip="Back"

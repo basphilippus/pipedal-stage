@@ -22,8 +22,29 @@ import { AndroidHostInterface, getAndroidHost } from "./AndroidHost";
 export enum ColorTheme {
     Light,
     Dark,
-    System
+    System,
+    Stage   // dark, high-contrast "stage rig" look for the touchscreen kiosk.
 };
+
+// A "?theme=stage|dark|light|system" URL parameter seeds the stored preference once
+// (handy for the kiosk URL and for testing); the Settings dialog can still change it afterwards.
+(function seedColorSchemeFromUrl() {
+    try {
+        let param = new URL(window.location.href).searchParams.get("theme");
+        if (!param) return;
+        let value: string | undefined = undefined;
+        switch (param.toLowerCase()) {
+            case "stage": value = "Stage"; break;
+            case "dark": value = "Dark"; break;
+            case "light": value = "Light"; break;
+            case "system": value = "System"; break;
+        }
+        if (value && localStorage.getItem("colorScheme") !== value) {
+            localStorage.setItem("colorScheme", value);
+        }
+    } catch (e) { /* ignore */ }
+})();
+
 
 export function getEffectiveColorScheme(): ColorTheme {
     let androidHost = (window as any).AndroidHost as AndroidHostInterface;
@@ -56,6 +77,8 @@ export function getColorScheme(): ColorTheme {
             return ColorTheme.Dark;
         case "System":
             return ColorTheme.System;
+        case "Stage":
+            return ColorTheme.Stage;
     }
 }
 export function setColorScheme(value: ColorTheme): void {
@@ -66,6 +89,7 @@ export function setColorScheme(value: ColorTheme): void {
                 androidHost.setThemePreference(0);
                 break;
             case ColorTheme.Dark:
+            case ColorTheme.Stage:
                 androidHost.setThemePreference(1);
                 break;
             default:
@@ -88,6 +112,9 @@ export function setColorScheme(value: ColorTheme): void {
 
         case ColorTheme.System:
             storageValue = "System";
+            break;
+        case ColorTheme.Stage:
+            storageValue = "Stage";
             break;
     }
     localStorage.setItem("colorScheme", storageValue);
@@ -115,6 +142,13 @@ export function isDarkMode(): boolean {
             return gIsDarkTheme = true;
         }
     }
-    return gIsDarkTheme = (colorTheme === ColorTheme.Dark);
+    return gIsDarkTheme = (colorTheme === ColorTheme.Dark || colorTheme === ColorTheme.Stage);
+}
+
+// The Stage theme is a dark theme (isDarkMode() is true) with its own palette,
+// typography and control styling. Not available when hosted by the Android app.
+export function isStageTheme(): boolean {
+    if (getAndroidHost()) return false;
+    return getColorScheme() === ColorTheme.Stage;
 }
 

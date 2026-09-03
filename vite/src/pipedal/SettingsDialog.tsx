@@ -817,7 +817,8 @@ const SettingsDialog = withStyles(
                                                     Color theme</Typography>
                                                 <Typography className={classes.secondaryItem} display="block" variant="caption" color="textSecondary" noWrap>
                                                     {this.model.getTheme() === ColorTheme.Dark ? "Dark" :
-                                                        (this.model.getTheme() === ColorTheme.Light ? "Light" : "System")}
+                                                        this.model.getTheme() === ColorTheme.Light ? "Light" :
+                                                            this.model.getTheme() === ColorTheme.Stage ? "Stage" : "System"}
                                                 </Typography>
                                             </div>
                                         </ButtonBase>

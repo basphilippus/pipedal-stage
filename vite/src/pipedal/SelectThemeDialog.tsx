@@ -52,7 +52,10 @@ function SelectThemesDialog(props: SelectThemesDialogProps) {
         } else if ((event.target as HTMLInputElement).value === '2')
         {
             value = ColorTheme.System;
-        }        
+        } else if ((event.target as HTMLInputElement).value === '3')
+        {
+            value = ColorTheme.Stage;
+        }
         setSelectedTheme(value);
     };
     const handleClose = (): void => {
@@ -77,6 +80,7 @@ function SelectThemesDialog(props: SelectThemesDialogProps) {
                         <FormControlLabel value={ColorTheme.Light} control={<Radio size='small' />} label="Light" />
                         <FormControlLabel value={ColorTheme.Dark} control={<Radio size='small' />} label="Dark" />
                         <FormControlLabel value={ColorTheme.System} control={<Radio size='small' />} label="Use system setting" />
+                        <FormControlLabel value={ColorTheme.Stage} control={<Radio size='small' />} label="Stage (high contrast, for the touchscreen)" />
                     </RadioGroup>
                 </FormControl>
             </DialogContent>

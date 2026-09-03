@@ -24,7 +24,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 
 import VirtualKeyboardHandler from './VirtualKeyboardHandler';
 import AppThemed from "./AppThemed";
-import { isDarkMode } from './DarkMode';
+import { isDarkMode, isStageTheme } from './DarkMode';
 import Tone3000AuthComplete from './Tone3000AuthComplete';
 import FontTest from './FontTest';
 
@@ -34,10 +34,12 @@ declare module '@mui/material/styles' {
     interface Theme {
         mainBackground: React.CSSProperties['color'];
         toolbarColor: React.CSSProperties['color'];
+        stage: boolean; // true for the "Stage" theme: components may switch to stage-specific styling.
     }
     interface ThemeOptions {
         mainBackground?: React.CSSProperties['color'];
         toolbarColor?: React.CSSProperties['color'];
+        stage?: boolean;
     }
     interface Palette {
         actionBar: Palette['primary'];
@@ -64,7 +66,146 @@ declare module '@mui/material/Button' {
 
 
 
+// "Stage" theme: dark, high-contrast look for the touchscreen kiosk. Near-black
+// ground, flat panels with hairline borders, one warm amber accent (LED/valve glow),
+// geometric display type. Selected in Settings > Color theme.
+export const STAGE = {
+    bg: "#0e0f11",
+    panel: "#17181b",
+    panelRaised: "#1e2024",
+    border: "#2a2c31",
+    accent: "#f5a524",
+    accentGlow: "0 0 10px rgba(245,165,36,0.55)",
+    text: "#f2f2f2",
+    textDim: "#9aa0a8",
+    displayFont: "'Nexa', 'Roboto', sans-serif",
+    bodyFont: "'Questrial', 'Roboto', sans-serif",
+};
+
+function stageThemeOptions(): Parameters<typeof createTheme>[0] {
+    return {
+        cssVariables: true,
+        stage: true,
+        mainBackground: STAGE.bg,
+        toolbarColor: STAGE.panel,
+        shape: { borderRadius: 6 },
+        typography: {
+            fontFamily: STAGE.bodyFont,
+            fontSize: 14,
+            h6: { fontFamily: STAGE.displayFont, letterSpacing: "0.02em" },
+            subtitle1: { fontFamily: STAGE.displayFont, letterSpacing: "0.02em" },
+            button: { fontFamily: STAGE.displayFont, letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 400 },
+            caption: { letterSpacing: "0.02em" },
+        },
+        palette: {
+            mode: 'dark',
+            primary: { main: STAGE.accent, contrastText: "#1a1200" },
+            secondary: { main: "#FF6060" },
+            background: { default: STAGE.bg, paper: STAGE.panel },
+            text: { primary: STAGE.text, secondary: STAGE.textDim },
+            divider: STAGE.border,
+            actionBar: { main: STAGE.panel, contrastText: STAGE.text },
+        },
+        components: {
+            MuiCssBaseline: {
+                styleOverrides: {
+                    body: { backgroundColor: STAGE.bg },
+                },
+            },
+            MuiPaper: {
+                styleOverrides: {
+                    root: { backgroundImage: "none" }, // no MUI elevation tint: flat panels.
+                },
+            },
+            MuiAppBar: {
+                styleOverrides: {
+                    root: {
+                        backgroundColor: STAGE.panel,
+                        backgroundImage: "none",
+                        boxShadow: "none",
+                        borderBottom: `1px solid ${STAGE.border}`,
+                    },
+                },
+            },
+            MuiDialog: {
+                styleOverrides: {
+                    paper: { border: `1px solid ${STAGE.border}` },
+                },
+            },
+            MuiDivider: {
+                styleOverrides: { root: { borderColor: STAGE.border } },
+            },
+            MuiButton: {
+                styleOverrides: {
+                    root: {
+                        '& .MuiTouchRipple-ripple': { transform: 'scale(1.9)' },
+                    },
+                    containedPrimary: {
+                        borderRadius: 6,
+                        paddingLeft: "18px", paddingRight: "18px",
+                        boxShadow: "none",
+                        '&:hover': { boxShadow: STAGE.accentGlow },
+                    },
+                    containedSecondary: {
+                        borderRadius: 6,
+                        paddingLeft: "18px", paddingRight: "18px",
+                        boxShadow: "none",
+                    },
+                    outlined: { borderColor: STAGE.border },
+                },
+                variants: [
+                    { props: { variant: 'dialogPrimary' }, style: { color: STAGE.accent } },
+                    { props: { variant: 'dialogSecondary' }, style: { color: STAGE.textDim } },
+                ],
+            },
+            MuiSwitch: {
+                // Bypass toggles read as an LED: dim when off, amber with a glow when on.
+                styleOverrides: {
+                    switchBase: {
+                        '&.Mui-checked .MuiSwitch-thumb': {
+                            backgroundColor: STAGE.accent,
+                            boxShadow: STAGE.accentGlow,
+                        },
+                        '&.Mui-checked + .MuiSwitch-track': {
+                            backgroundColor: STAGE.accent,
+                            opacity: 0.35,
+                        },
+                    },
+                    thumb: { backgroundColor: "#6b7078", boxShadow: "none" },
+                    track: { backgroundColor: "#3a3d44", opacity: 1 },
+                },
+            },
+            MuiInput: {
+                // Control value fields: hairline underline instead of the Material text-field look.
+                styleOverrides: {
+                    underline: {
+                        '&:before': { borderBottom: `1px solid ${STAGE.border}` },
+                        '&:hover:not(.Mui-disabled):before': { borderBottom: `1px solid ${STAGE.textDim}` },
+                        '&:after': { borderBottom: `2px solid ${STAGE.accent}` },
+                    },
+                },
+            },
+            MuiListItemButton: {
+                styleOverrides: {
+                    root: {
+                        '&.Mui-selected': {
+                            backgroundColor: 'rgba(245,165,36,0.14)',
+                            '&:hover': { backgroundColor: 'rgba(245,165,36,0.2)' },
+                        },
+                    },
+                },
+            },
+            MuiTooltip: {
+                styleOverrides: {
+                    tooltip: { backgroundColor: STAGE.panelRaised, border: `1px solid ${STAGE.border}`, color: STAGE.text },
+                },
+            },
+        },
+    };
+}
+
 const theme = createTheme(
+    isStageTheme() ? stageThemeOptions() :
     isDarkMode() ?
         {
             cssVariables: true,
@@ -157,7 +298,8 @@ const theme = createTheme(
 
             },
             mainBackground: "#222",
-            toolbarColor: '#222'
+            toolbarColor: '#222',
+            stage: false
         }
         :
         {
@@ -230,7 +372,8 @@ const theme = createTheme(
 
             },
             mainBackground: "#FFFFFF",
-            toolbarColor: '#FFFFFF'
+            toolbarColor: '#FFFFFF',
+            stage: false
 
 
         }

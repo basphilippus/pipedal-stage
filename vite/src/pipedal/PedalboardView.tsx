@@ -172,7 +172,7 @@ const pedalboardStyles = (theme: Theme) => createStyles({
 
         width: FRAME_SIZE,
         height: FRAME_SIZE,
-        borderColor: "#777",
+        borderColor: theme.stage ? "#3a3d44" : "#777",
         borderWidth: 2,
         borderStyle: "solid",
         overflow: "hidden",
