@@ -96,7 +96,7 @@ const StageKnob = React.forwardRef<SVGSVGElement, StageKnobProps>((props, ref) =
     return (
         <svg ref={ref} width={size} height={size} viewBox={`0 0 ${size} ${size}`}
             data-stage-knob="1" data-size={size}
-            style={{ display: "block", overflow: "visible", touchAction: "none", overscrollBehavior: "none", opacity: dimmed ? 0.45 : 1, ...style }}
+            style={{ display: "block", overflow: "visible", touchAction: "none", overscrollBehavior: "none", opacity: dimmed ? 0.45 : 1, transition: "transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1)", ...style }}
             {...svgProps}
         >
             <defs>

@@ -53,6 +53,7 @@ import OldDeleteIcon from "./svg/old_delete_outline_24dp.svg?react";
 import MidiIcon from "./svg/ic_midi.svg?react";
 import { isDarkMode, isStageTheme } from './DarkMode';
 import FootswitchStrip from './FootswitchStrip';
+import { STAGE } from './StageTheme';
 import Snapshot0Icon from "./svg/snapshot_0.svg?react";
 import Snapshot1Icon from "./svg/snapshot_1.svg?react";
 import Snapshot2Icon from "./svg/snapshot_2.svg?react";
@@ -82,7 +83,7 @@ const STAGE_CONTROL_ZOOM = 1.15;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 // const HORIZONTAL_LAYOUT_MQ = "@media (max-height: " + HORIZONTAL_CONTROL_SCROLL_HEIGHT_BREAK + "px)";
 
-const styles = ({ palette }: Theme) => {
+const styles = ({ palette, stage }: Theme) => {
     return {
         frame: css({
             position: "absolute", display: "flex", flexDirection: "column", flexWrap: "nowrap",
@@ -113,7 +114,9 @@ const styles = ({ palette }: Theme) => {
         controlContentSmall: css({
             flex: "0 0 162px", width: "100%", height: 162, overflowY: "hidden",
         }),
-        title: css({ fontSize: "1.1rem", fontWeight: 700, marginRight: 8, textOverflow: "ellipsis", whiteSpace: "nowrap", opacity: 0.75 }),
+        title: css(stage
+            ? { fontFamily: STAGE.displayFont, fontSize: "1.3rem", fontWeight: 400, letterSpacing: "0.02em", marginRight: 8, textOverflow: "ellipsis", whiteSpace: "nowrap", opacity: 0.95 }
+            : { fontSize: "1.1rem", fontWeight: 700, marginRight: 8, textOverflow: "ellipsis", whiteSpace: "nowrap", opacity: 0.75 }),
         author: css({ fontWeight: 500, fontSize: "0.8rem", marginRight: 8, textOverflow: "ellipsis", whiteSpace: "nowrap", opacity: 0.75 })
     }
 };

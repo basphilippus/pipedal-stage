@@ -177,6 +177,7 @@ const pedalboardStyles = (theme: Theme) => createStyles({
         height: FRAME_SIZE,
         borderColor: theme.stage ? STAGE.wire : "#777",
         borderWidth: theme.stage ? 1 : 2,
+        transition: theme.stage ? `box-shadow ${STAGE.ease}, border-color ${STAGE.ease}` : undefined,
         borderStyle: "solid",
         overflow: "hidden",
         padding: 0,
@@ -196,7 +197,8 @@ const pedalboardStyles = (theme: Theme) => createStyles({
         borderStyle: "solid",
         overflow: "hidden",
         borderRadius: 8,
-        boxShadow: theme.stage ? `0 0 10px 1px ${theme.palette.primary.main}90, ${STAGE.shadow}` : "0 0 6px 0px " + theme.palette.primary.main + "C0"
+        boxShadow: theme.stage ? `0 0 10px 1px ${theme.palette.primary.main}90, ${STAGE.shadow}` : "0 0 6px 0px " + theme.palette.primary.main + "C0",
+        transition: theme.stage ? `box-shadow ${STAGE.ease}, border-color ${STAGE.ease}` : undefined
     }),
     borderlessIconFrame: css({
 

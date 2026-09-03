@@ -163,13 +163,14 @@ function stageThemeOptions(): Parameters<typeof createTheme>[0] {
                             opacity: 0.35,
                         },
                     },
-                    thumb: { backgroundColor: "#6b7078", boxShadow: "none" },
+                    thumb: { backgroundColor: "#6b7078", boxShadow: "none", transition: `background-color ${STAGE.ease}, box-shadow ${STAGE.ease}` },
                     track: { backgroundColor: "#3a3d44", opacity: 1 },
                 },
             },
             MuiInput: {
                 // Control value fields: hairline underline instead of the Material text-field look.
                 styleOverrides: {
+                    input: { fontVariantNumeric: "tabular-nums" },
                     underline: {
                         '&:before': { borderBottom: `1px solid ${STAGE.border}` },
                         '&:hover:not(.Mui-disabled):before': { borderBottom: `1px solid ${STAGE.textDim}` },
@@ -189,7 +190,8 @@ function stageThemeOptions(): Parameters<typeof createTheme>[0] {
             },
             MuiTooltip: {
                 styleOverrides: {
-                    tooltip: { backgroundColor: STAGE.panelRaised, border: `1px solid ${STAGE.border}`, color: STAGE.text },
+                    // Also the value readout while dragging a knob: big enough to read from standing height.
+                    tooltip: { backgroundColor: STAGE.panelRaised, border: `1px solid ${STAGE.border}`, color: STAGE.text, fontSize: 15, fontFamily: STAGE.displayFont, letterSpacing: "0.03em", padding: "6px 12px", fontVariantNumeric: "tabular-nums" },
                 },
             },
         },
