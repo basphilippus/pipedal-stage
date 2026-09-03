@@ -817,6 +817,12 @@ const PedalboardView =
                 onItemDoubleClick(event: SyntheticEvent, instanceId?: number): void {
                     event.preventDefault();
                     event.stopPropagation();
+                    if (this.props.theme.stage) {
+                        // Stage: double-tap toggles bypass (handled in onItemClick). The stock
+                        // action (open the Load Plugin dialog) must not run as well: a browser
+                        // dblclick after two taps would open it and stray taps replace the block.
+                        return;
+                    }
 
                     if (this.props.onDoubleClick && instanceId && this.props.enableStructureEditing) {
                         this.props.onDoubleClick(instanceId);
