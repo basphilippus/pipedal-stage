@@ -202,10 +202,9 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
         let letter = String.fromCharCode(65 + index); // A, B, C, D = pedal switch names
         return (
             <div key={index}
-                onPointerDown={() => this.onPointerDown(index)}
+                onPointerDown={(e) => { e.preventDefault(); this.onPointerDown(index); }}
                 onPointerUp={() => this.onPointerUp(index)}
                 onPointerCancel={() => this.onPointerCancel()}
-                onPointerLeave={() => this.onPointerCancel()}
                 onContextMenu={(e) => { e.preventDefault(); }}
                 style={{
                     flex: "1 1 0", minWidth: 0, height: 60, borderRadius: 10, position: "relative",
@@ -215,7 +214,7 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
                     boxShadow: snapshot
                         ? (active ? `${STAGE.innerHighlight}, ${STAGE.shadow}, 0 0 14px 0 ${color}40` : `${STAGE.innerHighlight}, ${STAGE.shadow}`)
                         : "none",
-                    userSelect: "none", WebkitTapHighlightColor: "transparent", touchAction: "manipulation",
+                    userSelect: "none", WebkitTapHighlightColor: "transparent", touchAction: "none", // no pan: a touch must not turn into pointercancel
                     transition: `border-color ${STAGE.ease}, box-shadow ${STAGE.ease}`,
                 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
