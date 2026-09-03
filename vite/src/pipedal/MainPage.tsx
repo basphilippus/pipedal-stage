@@ -27,7 +27,6 @@ import ButtonBase from '@mui/material/ButtonBase';
 import PluginIcon, { getIconColor } from './PluginIcon';
 
 import ToolTipEx from './ToolTipEx';
-import FootswitchSelector from './FootswitchSelector';
 import { PiPedalModel, PiPedalModelFactory } from './PiPedalModel';
 import {
     Pedalboard, PedalboardItem, PedalboardSplitItem, SplitType
@@ -697,7 +696,6 @@ export const MainPage =
                                             >
                                                 <Switch color="secondary" checked={bypassChecked} onClick={this.handleEnableCurrentItemChanged} onChange={() => { }} />
                                             </ToolTipEx>
-                                            <FootswitchSelector pedalboardItem={pedalboardItem} />
                                         </div>
                                     </div>
                                     {
