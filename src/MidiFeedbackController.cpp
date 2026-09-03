@@ -47,11 +47,13 @@ namespace
     // LED color codes shared with the controller firmware.
     constexpr uint8_t COLOR_WHITE = 0;
     constexpr uint8_t COLOR_RED = 1;
+    constexpr uint8_t COLOR_ORANGE = 2;
     constexpr uint8_t COLOR_YELLOW = 3;
     constexpr uint8_t COLOR_GREEN = 4;
     constexpr uint8_t COLOR_CYAN = 5;
     constexpr uint8_t COLOR_BLUE = 6;
     constexpr uint8_t COLOR_PURPLE = 7;
+    constexpr uint8_t COLOR_MAGENTA = 8;
 
     uint8_t ColorForPluginType(PluginType type)
     {
@@ -196,6 +198,7 @@ void MidiFeedbackController::Start()
         return;
     }
     started = true;
+    RebuildSnapshotSwitches(model.GetSystemMidiBidings());
 
     senderThread = std::jthread([this](std::stop_token stopToken)
                                 { SenderThreadProc(stopToken); });
@@ -411,6 +414,10 @@ void MidiFeedbackController::RebuildBindings(const Pedalboard &pedalboard)
             {
                 continue;
             }
+            if (IsSnapshotSwitch(midiBinding.channel(), midiBinding.control()))
+            {
+                continue; // the snapshot switch owns this CC's LED and label
+            }
             BypassBinding binding;
             binding.instanceId = item->instanceId();
             binding.symbol = midiBinding.symbol();
@@ -433,6 +440,10 @@ void MidiFeedbackController::EnqueueFullRefresh()
     for (const BypassBinding &binding : bindings)
     {
         currentKeys.push_back((uint16_t)((ResolveChannel(binding.channel) << 8) | (binding.cc & 0x7F)));
+    }
+    for (const SnapshotSwitch &sw : snapshotSwitches)
+    {
+        currentKeys.push_back((uint16_t)((ResolveChannel(sw.channel) << 8) | (sw.cc & 0x7F)));
     }
     for (uint16_t staleKey : lastRefreshKeys)
     {
@@ -469,6 +480,7 @@ void MidiFeedbackController::EnqueueFullRefresh()
         }
         EnqueueBindingState(binding, on);
     }
+    EnqueueSnapshotStates(board.selectedSnapshot());
 
     // Labels and colors.
     Event clearAll;
@@ -482,7 +494,100 @@ void MidiFeedbackController::EnqueueFullRefresh()
         setSwitch.sysex = MakeSetSwitchSysEx(binding);
         Enqueue(std::move(setSwitch));
     }
+    const auto &snapshots = board.snapshots();
+    for (const SnapshotSwitch &sw : snapshotSwitches)
+    {
+        BypassBinding label;
+        label.channel = sw.channel;
+        label.cc = sw.cc;
+        std::shared_ptr<Snapshot> snapshot = ((size_t)sw.index < snapshots.size()) ? snapshots[sw.index] : nullptr;
+        if (snapshot)
+        {
+            label.color = ColorForColorKey(snapshot->color_);
+            label.label = SanitizeLabel(snapshot->name_);
+        }
+        else
+        {
+            label.color = COLOR_WHITE;
+            label.label = "-";
+        }
+        Event setSwitch;
+        setSwitch.type = EvType::SendSysEx;
+        setSwitch.sysex = MakeSetSwitchSysEx(label);
+        Enqueue(std::move(setSwitch));
+    }
+}
 
+void MidiFeedbackController::RebuildSnapshotSwitches(const std::vector<MidiBinding> &systemBindings)
+{
+    snapshotSwitches.clear();
+    for (const MidiBinding &binding : systemBindings)
+    {
+        if (binding.bindingType() != BINDING_TYPE_CONTROL)
+        {
+            continue;
+        }
+        const std::string &symbol = binding.symbol();
+        if (symbol.size() == 9 && symbol.rfind("snapshot", 0) == 0 && symbol[8] >= '1' && symbol[8] <= '6')
+        {
+            SnapshotSwitch sw;
+            sw.index = symbol[8] - '1';
+            sw.channel = binding.channel();
+            sw.cc = binding.control();
+            snapshotSwitches.push_back(sw);
+        }
+    }
+}
+
+bool MidiFeedbackController::IsSnapshotSwitch(int channel, int cc) const
+{
+    for (const SnapshotSwitch &sw : snapshotSwitches)
+    {
+        if (sw.cc == cc && ResolveChannel(sw.channel) == ResolveChannel(channel))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void MidiFeedbackController::EnqueueSnapshotStates(int64_t selectedSnapshot)
+{
+    for (const SnapshotSwitch &sw : snapshotSwitches)
+    {
+        Event event;
+        event.type = EvType::SendCC;
+        event.channel = ResolveChannel(sw.channel);
+        event.d1 = (uint8_t)(sw.cc & 0x7F);
+        event.d2 = (sw.index == selectedSnapshot) ? 127 : 0;
+        Enqueue(std::move(event));
+    }
+}
+
+// Snapshot colours are Material colour keys chosen in the UI (see MaterialColors.tsx).
+uint8_t MidiFeedbackController::ColorForColorKey(const std::string &key)
+{
+    if (key == "red" || key == "deepOrange") return COLOR_RED;
+    if (key == "pink") return COLOR_MAGENTA;
+    if (key == "orange" || key == "amber") return COLOR_ORANGE;
+    if (key == "yellow" || key == "lime") return COLOR_YELLOW;
+    if (key == "green" || key == "lightGreen" || key == "teal") return COLOR_GREEN;
+    if (key == "cyan" || key == "lightBlue") return COLOR_CYAN;
+    if (key == "blue" || key == "indigo") return COLOR_BLUE;
+    if (key == "purple" || key == "deepPurple") return COLOR_PURPLE;
+    return COLOR_WHITE;
+}
+
+void MidiFeedbackController::OnSelectedSnapshotChanged(int64_t selectedSnapshot)
+{
+    EnqueueSnapshotStates(selectedSnapshot);
+}
+
+void MidiFeedbackController::OnSystemMidiBindingsChanged(const std::vector<MidiBinding> &systemBindings)
+{
+    RebuildSnapshotSwitches(systemBindings);
+    RebuildBindings(model.GetCurrentPedalboardCopy());
+    EnqueueFullRefresh();
 }
 
 void MidiFeedbackController::OnItemEnabledChanged(int64_t clientId, int64_t pedalItemId, bool enabled)

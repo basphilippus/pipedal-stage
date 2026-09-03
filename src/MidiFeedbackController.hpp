@@ -68,6 +68,8 @@ namespace pipedal
         void OnPedalboardChanged(int64_t clientId, const Pedalboard &pedalboard) override;
         void OnPresetsChanged(int64_t clientId, const PresetIndex &presets) override;
         void OnAlsaSequencerConfigurationChanged(const AlsaSequencerConfiguration &configuration) override;
+        void OnSelectedSnapshotChanged(int64_t selectedSnapshot) override;
+        void OnSystemMidiBindingsChanged(const std::vector<MidiBinding> &bindings) override;
 
     private:
         explicit MidiFeedbackController(PiPedalModel &model);
@@ -106,8 +108,20 @@ namespace pipedal
         };
 
         // ---- callback-side state (only touched under PiPedalModel's mutex) ----
+        // A system MIDI binding "snapshot1".."snapshot6" of CONTROL type: the switch
+        // selects a snapshot of the current preset. Its LED shows the active snapshot
+        // (radio-style), its label/colour come from the snapshot. Takes precedence over
+        // any block binding on the same CC.
+        struct SnapshotSwitch
+        {
+            int index = 0;   // 0-based snapshot index
+            int channel = -1;
+            int cc = 0;
+        };
+
         PiPedalModel &model;
         std::vector<BypassBinding> bindings;
+        std::vector<SnapshotSwitch> snapshotSwitches;
         int32_t configMidiChannel = -1;
         std::vector<std::string> connectionIds;
         std::vector<uint16_t> lastRefreshKeys; // (channel<<8)|cc sent in the previous refresh
@@ -130,6 +144,10 @@ namespace pipedal
         static std::string SanitizeLabel(const std::string &text);
 
         void RebuildBindings(const Pedalboard &pedalboard);
+        void RebuildSnapshotSwitches(const std::vector<MidiBinding> &systemBindings);
+        bool IsSnapshotSwitch(int channel, int cc) const;
+        void EnqueueSnapshotStates(int64_t selectedSnapshot);
+        static uint8_t ColorForColorKey(const std::string &key);
         void EnqueueFullRefresh();
         void EnqueueBindingState(const BypassBinding &binding, bool enabled);
         void Enqueue(Event &&event);

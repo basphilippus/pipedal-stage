@@ -52,7 +52,7 @@ import PluginPresetSelector from './PluginPresetSelector';
 import OldDeleteIcon from "./svg/old_delete_outline_24dp.svg?react";
 import MidiIcon from "./svg/ic_midi.svg?react";
 import { isDarkMode, isStageTheme } from './DarkMode';
-import FootswitchStrip from './FootswitchStrip';
+import SnapshotStrip from './SnapshotStrip';
 import { STAGE } from './StageTheme';
 import Snapshot0Icon from "./svg/snapshot_0.svg?react";
 import Snapshot1Icon from "./svg/snapshot_1.svg?react";
@@ -799,7 +799,7 @@ export const MainPage =
                                 }
                             </div>
                             {(this.props.theme.stage && !horizontalScrollLayout) && (
-                                <FootswitchStrip pedalboard={this.state.pedalboard} />
+                                <SnapshotStrip pedalboard={this.state.pedalboard} selectedSnapshot={this.state.selectedSnapshot} />
                             )}
                             <MidiBindingsDialog open={this.state.showMidiBindingsDialog}
                                 onClose={() => this.setState({ showMidiBindingsDialog: false })}
