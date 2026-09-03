@@ -70,6 +70,7 @@ namespace pipedal {
         bool isOnline_ = false;
         std::string currentVersion_;
         std::string currentVersionDisplayName_;
+        std::string customBuildTag_; // non-empty: locally patched build, in-app install disabled.
 
         int32_t updatePolicy_ = (int32_t)(UpdatePolicyT::ReleaseOrBeta);
         UpdateRelease releaseOnlyRelease_;
@@ -91,6 +92,8 @@ namespace pipedal {
         bool IsOnline() const { return isOnline_; }
         const std::string &CurrentVersion() const { return currentVersion_; }
         const std::string &CurrentDisplayVersion() const { return currentVersionDisplayName_; }
+        const std::string &CustomBuildTag() const { return customBuildTag_; }
+        bool IsCustomBuild() const { return !customBuildTag_.empty(); }
         UpdatePolicyT UpdatePolicy() const { return (UpdatePolicyT)updatePolicy_; }
         void UpdatePolicy(UpdatePolicyT updatePreference) { this->updatePolicy_ = (int32_t)updatePreference; }
 

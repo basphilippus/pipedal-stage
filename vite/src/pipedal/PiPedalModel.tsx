@@ -1119,6 +1119,9 @@ export class PiPedalModel //implements PiPedalModel
         if (updateStatus.updatePolicy === UpdatePolicyT.Disable) {
             canUpdateNow = false;
         }
+        if (updateStatus.customBuildTag !== "") {
+            canUpdateNow = false; // custom build: install is disabled, nothing to prompt for.
+        }
 
         if (canUpdateNow && canUpdateNow !== this.lastCanUpdateNow) {
             this.showUpdateDialogValue = true; // make the dialog sticky so it can show OK button

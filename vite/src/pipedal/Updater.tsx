@@ -65,6 +65,7 @@ export class UpdateStatus {
     isOnline: boolean = false;
     currentVersion: string = "";
     currentVersionDisplayName: string = "";
+    customBuildTag: string = ""; // non-empty: locally patched build, in-app install disabled.
 
     releaseOnlyRelease: UpdateRelease = new UpdateRelease();
     releaseOrBetaRelease: UpdateRelease = new UpdateRelease();
@@ -78,6 +79,7 @@ export class UpdateStatus {
         this.updatePolicy = intToUpdatePolicyT(input.updatePolicy);
         this.currentVersion = input.currentVersion;
         this.currentVersionDisplayName = input.currentVersionDisplayName;
+        this.customBuildTag = input.customBuildTag ?? "";
         this.releaseOnlyRelease = new UpdateRelease().deserialize(input.releaseOnlyRelease);
         this.releaseOrBetaRelease = new UpdateRelease().deserialize(input.releaseOrBetaRelease);
         this.devRelease = new UpdateRelease().deserialize(input.devRelease);

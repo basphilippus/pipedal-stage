@@ -40,6 +40,7 @@
 #include "DBusToLv2Log.hpp"
 #include "SysExec.hpp"
 #include "Updater.hpp"
+#include "config.hpp"
 #include "util.hpp"
 #include "DBusLog.hpp"
 #include "AvahiService.hpp"
@@ -3208,6 +3209,13 @@ UpdateStatus PiPedalModel::GetUpdateStatus()
 void PiPedalModel::UpdateNow(const std::string &updateUrl)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex);
+    if (PIPEDAL_CUSTOM_BUILD_TAG[0] != '\0')
+    {
+        // Installing the upstream package would overwrite the patched binary and web UI.
+        throw std::runtime_error(
+            std::string("This is a custom build (") + PIPEDAL_CUSTOM_BUILD_TAG +
+            "). In-app updates are disabled; redeploy from source instead.");
+    }
     std::filesystem::path fileName, signatureName;
     updater->DownloadUpdate(updateUrl, &fileName, &signatureName);
 

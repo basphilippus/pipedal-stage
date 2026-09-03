@@ -7,6 +7,15 @@ project(pipedal
 
 set (DISPLAY_VERSION "PiPedal v2.0.110-Release")
 
+# Non-empty marks a locally patched build. The tag is appended to the display
+# version, and the in-app updater refuses to install upstream packages (which
+# would silently overwrite the patched binary and web UI).
+set (PIPEDAL_CUSTOM_BUILD_TAG "MidiFeedback" CACHE STRING "Tag for locally patched builds; empty for stock")
+if (NOT "${PIPEDAL_CUSTOM_BUILD_TAG}" STREQUAL "")
+    # Replace the "-Release" suffix; makeRelease parses the text after the last '-'.
+    string(REGEX REPLACE "-[A-Za-z]+$" "-${PIPEDAL_CUSTOM_BUILD_TAG}" DISPLAY_VERSION "${DISPLAY_VERSION}")
+endif()
+
 option(PIPEDAL_DISABLE_COPYRIGHT_BUILD "Skip generation of copyright notices (use on non-Debian distros)" OFF)
 option(PIPEDAL_EXCLUDE_TESTS "Exclude test targets from default build" OFF)
 

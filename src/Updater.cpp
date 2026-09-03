@@ -923,6 +923,7 @@ UpdateStatus::UpdateStatus()
 {
     currentVersion_ = PROJECT_VER;
     currentVersionDisplayName_ = PROJECT_DISPLAY_VERSION;
+    customBuildTag_ = PIPEDAL_CUSTOM_BUILD_TAG;
 
 #ifdef TEST_UPDATE
     // uncomment this line to test upgrading.
@@ -935,6 +936,7 @@ void UpdateStatus::UpdateForCurrentVersion()
 {
     currentVersion_ = PROJECT_VER;
     currentVersionDisplayName_ = PROJECT_DISPLAY_VERSION;
+    customBuildTag_ = PIPEDAL_CUSTOM_BUILD_TAG;
 
 #if defined(TEST_UPDATE) && defined(DEBUG)
     // uncomment this line to test upgrading.
@@ -1391,6 +1393,7 @@ JSON_MAP_REFERENCE(UpdateStatus, errorMessage)
 JSON_MAP_REFERENCE(UpdateStatus, isOnline)
 JSON_MAP_REFERENCE(UpdateStatus, currentVersion)
 JSON_MAP_REFERENCE(UpdateStatus, currentVersionDisplayName)
+JSON_MAP_REFERENCE(UpdateStatus, customBuildTag)
 JSON_MAP_REFERENCE(UpdateStatus, updatePolicy)
 JSON_MAP_REFERENCE(UpdateStatus, releaseOnlyRelease)
 JSON_MAP_REFERENCE(UpdateStatus, releaseOrBetaRelease)

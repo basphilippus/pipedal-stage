@@ -133,8 +133,14 @@ export default class UpdateDialog extends ResizeResponsiveComponent<UpdateDialog
         let updateRelease: UpdateRelease = updateStatus.getActiveRelease();
         return !updateRelease.updateAvailable
     }
+    isCustomBuild(): boolean {
+        return this.state.updateStatus.customBuildTag !== "";
+    }
     canUpgrade(): boolean {
         let updateStatus = this.state.updateStatus;
+        if (this.isCustomBuild()) {
+            return false; // installing upstream would overwrite the patched binary and web UI.
+        }
         if (updateStatus.updatePolicy === UpdatePolicyT.Disable) {
             return false;
         }
@@ -158,6 +164,7 @@ export default class UpdateDialog extends ResizeResponsiveComponent<UpdateDialog
         let upToDate = this.upToDate();
         let canUpgrade = this.canUpgrade();
         let showUpgradeVersion = !upToDate && updateStatus.isValid && updateRelease.upgradeVersionDisplayName !== "";
+        let isCustomBuild = this.isCustomBuild();
         let compactWidth = this.state.compactWidth;
         return (
             <DialogEx tag="update" open={this.props.open} onClose={() => { this.handleClose(); }}
@@ -167,19 +174,29 @@ export default class UpdateDialog extends ResizeResponsiveComponent<UpdateDialog
                 <DialogTitle>
                     <div style={{ display: "flex", flexFlow: "row noWrap", alignItems: "center" }} >
                         <Typography style={{ flexGrow: 1, flexShrink: 1, marginRight: 20 }} noWrap>Updates</Typography>
-                        <Select style={{ opacity: 0.6 }} variant="standard" value={updateStatus.updatePolicy} onChange={(ev) => { this.onPolicySelected(ev.target.value); }}>
-                            <MenuItem value={UpdatePolicyT.ReleaseOnly}>Release only</MenuItem>
-                            <MenuItem value={UpdatePolicyT.ReleaseOrBeta}>Release or Beta</MenuItem>
-                            <MenuItem value={UpdatePolicyT.Development}>Development</MenuItem>
-                            <MenuItem value={UpdatePolicyT.Disable}>Disable</MenuItem>
-                        </Select>
+                        {(!isCustomBuild) && (
+                            <Select style={{ opacity: 0.6 }} variant="standard" value={updateStatus.updatePolicy} onChange={(ev) => { this.onPolicySelected(ev.target.value); }}>
+                                <MenuItem value={UpdatePolicyT.ReleaseOnly}>Release only</MenuItem>
+                                <MenuItem value={UpdatePolicyT.ReleaseOrBeta}>Release or Beta</MenuItem>
+                                <MenuItem value={UpdatePolicyT.Development}>Development</MenuItem>
+                                <MenuItem value={UpdatePolicyT.Disable}>Disable</MenuItem>
+                            </Select>
+                        )}
                     </div>
 
                 </DialogTitle>
                 <Divider />
 
                 <DialogContent>
-                    {(upToDate) && (
+                    {(isCustomBuild) && (
+                        <Typography variant="body2" color="textSecondary" style={{ marginBottom: 12 }}>
+                            This is a custom build ({updateStatus.customBuildTag}). In-app updates are disabled:
+                            installing the upstream package would overwrite the patched server and web UI.
+                            {(showUpgradeVersion) && " A newer upstream release is available; rebuild from source to pick it up."}
+                        </Typography>
+                    )
+                    }
+                    {(upToDate && !isCustomBuild) && (
                         <Typography variant="body2" color="textSecondary" style={{ marginBottom: 12 }}>
                             PiPedal is up to date.
                         </Typography>
