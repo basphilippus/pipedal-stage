@@ -114,7 +114,8 @@ const WifiDirectConfigDialog =
         mounted: boolean = false;
 
         handleEnableChanged(e: any) {
-            this.setState({ enabled: e.target.checked });
+            // toggle from state, not e.target.checked (touch + React 19; see MainPage.handleEnableCurrentItemChanged)
+            this.setState({ enabled: !this.state.enabled });
         }
 
 
@@ -318,7 +319,8 @@ const WifiDirectConfigDialog =
                                     control={(
                                         <Switch
                                             checked={this.state.enabled}
-                                            onChange={(e: any) => this.handleEnableChanged(e)}
+                                            onClick={(e: any) => this.handleEnableChanged(e)}
+                                            onChange={() => { }}
                                             color="primary"
                                         />
                                     )}
@@ -412,7 +414,8 @@ const WifiDirectConfigDialog =
                                     control={(
                                         <Switch
                                             checked={this.state.enabled}
-                                            onChange={(e: any) => this.handleEnableChanged(e)}
+                                            onClick={(e: any) => this.handleEnableChanged(e)}
+                                            onChange={() => { }}
                                             color="secondary"
                                         />
                                     )}

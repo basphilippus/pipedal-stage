@@ -161,7 +161,10 @@ export function ModelSelectionDialog(
                                     <Checkbox
                                         checked={allSelected}
                                         indeterminate={partiallySelected}
-                                        onChange={toggleAll}
+                                        // onClick, not onChange (touch + React 19; see MainPage.handleEnableCurrentItemChanged);
+                                        // stopPropagation so the row's onClick doesn't toggle a second time.
+                                        onClick={(e) => { e.stopPropagation(); toggleAll(); }}
+                                        onChange={() => { }}
                                         sx={{marginLeft: 1}}
                                         inputProps={{ 'aria-label': 'select all models' }}
                                     />

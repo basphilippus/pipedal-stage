@@ -159,9 +159,10 @@ function MidiChannelBindingDialog(props: MidiChannelBindingDialogProps) {
                     <div style={{ display: "flex", flexFlow: "row nowrap", justifyContent: "center" }}>
                         <FormControlLabel control={
                             <Checkbox checked={allowProgramChanges}
-                                onChange={(event) => {
-                                    setAllowProgramChanges(event.target.checked);
+                                onClick={() => { // onClick, not onChange (touch + React 19)
+                                    setAllowProgramChanges(!allowProgramChanges);
                                 }}
+                                onChange={() => { }}
                             />
                         } label="Allow Program Changes"
                         />

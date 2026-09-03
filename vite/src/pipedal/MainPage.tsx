@@ -257,7 +257,8 @@ export const MainPage =
                     // focus updates during the click's capture phase, rewriting the
                     // controlled `checked` from the stale prop before change detection
                     // runs, so onChange never fires (seen on the kiosk touchscreen).
-                    event.preventDefault();
+                    // Don't preventDefault: the native toggle keeps the input's checked
+                    // property in step with React's state once it re-renders.
                     let item = this.getSelectedPedalboardItem();
                     if (item != null) {
                         this.model.setPedalboardItemEnabled(item.getInstanceId(), !item.isEnabled);

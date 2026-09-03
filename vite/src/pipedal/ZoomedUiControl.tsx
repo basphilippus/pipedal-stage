@@ -165,7 +165,7 @@ const ZoomedUiControl = withTheme(withStyles(
                 return (
                     <Switch checked={value !== 0} color="primary"
                         // onClick, not onChange: see MainPage.handleEnableCurrentItemChanged (touch + React 19).
-                        onClick={(event) => { event.preventDefault(); this.onCheckChanged(value === 0); }}
+                        onClick={() => { this.onCheckChanged(value === 0); }}
                         onChange={() => { }}
                     />
                 );
@@ -175,7 +175,7 @@ const ZoomedUiControl = withTheme(withStyles(
                 return (
                     <Switch checked={value !== 0} color="primary"
                         // onClick, not onChange: see MainPage.handleEnableCurrentItemChanged (touch + React 19).
-                        onClick={(event) => { event.preventDefault(); this.onCheckChanged(value === 0); }}
+                        onClick={() => { this.onCheckChanged(value === 0); }}
                         onChange={() => { }}
                         classes={{
                             track: classes.switchTrack

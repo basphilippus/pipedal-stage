@@ -843,9 +843,8 @@ const SettingsDialog = withStyles(
                                                             <div style={{ flex: "0 0 auto" }}>
                                                                 <Switch
                                                                     checked={this.state.keepScreenOn}
-                                                                    onChange={
-                                                                        (e) => { this.model.setKeepScreenOn(e.target.checked); }
-                                                                    }
+                                                                    onClick={() => { this.model.setKeepScreenOn(!this.state.keepScreenOn); }}
+                                                                    onChange={() => { }}
                                                                 />
                                                             </div>
 
@@ -906,9 +905,8 @@ const SettingsDialog = withStyles(
                                                     <div style={{ flex: "0 0 auto" }}>
                                                         <Switch
                                                             checked={this.state.showStatusMonitor}
-                                                            onChange={
-                                                                (e) => { this.model.setShowStatusMonitor(e.target.checked); }
-                                                            }
+                                                            onClick={() => { this.model.setShowStatusMonitor(!this.state.showStatusMonitor); }}
+                                                            onChange={() => { }}
                                                         />
                                                     </div>
 

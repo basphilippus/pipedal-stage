@@ -543,10 +543,11 @@ export default function LoopDialog(props: LoopDialogProps) {
                             labelPlacement="start"
                             style={{ marginLeft: 0 }}
                             control={<Checkbox checked={loopEnable}
-                                onChange={(e, checked) => {
-                                    setLoopEnable(checked);
+                                onClick={() => { // onClick, not onChange (touch + React 19)
+                                    setLoopEnable(!loopEnable);
                                     cancelPlaying();
                                 }}
+                                onChange={() => { }}
 
                             />} label="Enable loop" />
                     </FormGroup>

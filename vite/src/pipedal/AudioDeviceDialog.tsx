@@ -803,7 +803,7 @@ const AudioDeviceDialog = withStyles(
                                     Are you sure you want to continue?
                                 </Typography>
                                 <FormControlLabel
-                                    control={<Checkbox checked={this.state.suppressDeviceWarning} onChange={(e, c) => this.handleWarningCheck(e, c)} />}
+                                    control={<Checkbox checked={this.state.suppressDeviceWarning} onClick={(e) => { this.handleWarningCheck(e, !this.state.suppressDeviceWarning); }} onChange={() => { }} />}
                                     label="Don't show me this message again"
                                 />
                             </DialogContent>
