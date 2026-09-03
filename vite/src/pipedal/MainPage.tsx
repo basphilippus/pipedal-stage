@@ -109,7 +109,7 @@ const styles = ({ palette, stage }: Theme) => {
             flex: "0 0 64px", width: "100%", paddingLeft: 24, paddingRight: 16, paddingBottom: 16
         }),
         controlContent: css({
-            flex: "1 1 auto", width: "100%", overflowY: "hidden", minHeight: 185
+            flex: "1 1 auto", width: "100%", overflowY: "hidden", minHeight: stage ? 110 : 185
         }),
         controlContentSmall: css({
             flex: "0 0 162px", width: "100%", height: 162, overflowY: "hidden",

@@ -100,8 +100,8 @@ function stageThemeOptions(): Parameters<typeof createTheme>[0] {
                 styleOverrides: {
                     body: { backgroundColor: STAGE.bg },
                     // Touch UI: no scrollbars in the plugin control panel (content still scrolls).
-                    '#mainPageControls ::-webkit-scrollbar': { display: 'none' },
-                    '#mainPageControls *': { scrollbarWidth: 'none' },
+                    '#mainPageControls ::-webkit-scrollbar, #pedalboardScroll::-webkit-scrollbar': { display: 'none' },
+                    '#mainPageControls *, #pedalboardScroll': { scrollbarWidth: 'none' },
                 },
             },
             MuiPaper: {

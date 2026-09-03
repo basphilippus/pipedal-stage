@@ -144,7 +144,7 @@ export default class FootswitchStrip extends React.Component<FootswitchStripProp
         return (
             <div style={{
                 flex: "0 0 auto", display: "flex", flexFlow: "row nowrap", gap: 12,
-                padding: "10px 16px 14px 16px", borderTop: `1px solid ${STAGE.border}`, background: STAGE.bg,
+                padding: "8px 16px 10px 16px", borderTop: `1px solid ${STAGE.border}`, background: STAGE.bg,
             }}>
                 {assignments.map((a) => {
                     let assigned = a.item !== null;
@@ -153,8 +153,8 @@ export default class FootswitchStrip extends React.Component<FootswitchStripProp
                         <div key={a.footswitch.cc}
                             onClick={() => this.handleTap(a)}
                             style={{
-                                flex: "1 1 0", minWidth: 0, height: 72, borderRadius: 10, position: "relative",
-                                padding: "10px 14px", boxSizing: "border-box", cursor: assigned ? "pointer" : "default",
+                                flex: "1 1 0", minWidth: 0, height: 60, borderRadius: 10, position: "relative",
+                                padding: "7px 14px", boxSizing: "border-box", cursor: assigned ? "pointer" : "default",
                                 background: assigned ? STAGE.panelGradient : "transparent",
                                 border: assigned ? `1px solid ${a.isOn ? a.color + "80" : STAGE.wire}` : `1px dashed ${STAGE.border}`,
                                 boxShadow: assigned ? `${STAGE.innerHighlight}, ${STAGE.shadow}` : "none",
@@ -163,17 +163,17 @@ export default class FootswitchStrip extends React.Component<FootswitchStripProp
                             }}>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                 <span style={{
-                                    fontFamily: STAGE.displayFont, fontSize: 12, letterSpacing: "0.12em",
+                                    fontFamily: STAGE.displayFont, fontSize: 11, letterSpacing: "0.12em",
                                     color: STAGE.textDim, textTransform: "uppercase",
                                 }}>{a.footswitch.name}</span>
                                 <span style={{
-                                    width: 12, height: 12, borderRadius: "50%", background: ledColor,
+                                    width: 11, height: 11, borderRadius: "50%", background: ledColor,
                                     boxShadow: a.isOn ? `0 0 10px 2px ${a.color}99, inset 0 -1px 2px rgba(0,0,0,0.4)` : "inset 0 1px 2px rgba(0,0,0,0.6)",
                                     transition: `background ${STAGE.ease}, box-shadow ${STAGE.ease}`,
                                 }} />
                             </div>
                             <div style={{
-                                marginTop: 6, fontFamily: STAGE.displayFont, fontSize: 18, letterSpacing: "0.02em",
+                                marginTop: 2, fontFamily: STAGE.displayFont, fontSize: 17, letterSpacing: "0.02em",
                                 color: assigned ? (a.isOn ? STAGE.text : STAGE.textDim) : STAGE.border,
                                 whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                             }}>{assigned ? a.label : "—"}</div>
