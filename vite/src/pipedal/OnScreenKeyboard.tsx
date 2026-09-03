@@ -27,7 +27,12 @@ import React from 'react';
 // React's native value setter so controlled inputs see normal input events.
 
 export function onScreenKeyboardEnabled(): boolean {
-    return new URLSearchParams(window.location.search).get("vkb") === "1";
+    // ?vkb=1 arms it explicitly. The kiosk is also the only client that loads the UI
+    // from localhost, and the app rewrites the URL on some navigations (dropping the
+    // query), so treat a localhost origin as the kiosk too.
+    if (new URLSearchParams(window.location.search).get("vkb") === "1") return true;
+    let host = window.location.hostname;
+    return host === "localhost" || host === "127.0.0.1" || host === "[::1]";
 }
 
 interface OnScreenKeyboardState {
