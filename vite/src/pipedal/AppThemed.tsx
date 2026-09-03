@@ -362,7 +362,7 @@ export
             isDrawerOpen: false,
             errorMessage: this.model_.errorMessage.get(),
             displayState: this.model_.state.get(),
-            canFullScreen: supportsFullScreen() && !this.model_.isAndroidHosted(),
+            canFullScreen: supportsFullScreen() && !this.model_.isAndroidHosted() && !onScreenKeyboardEnabled(),
             isFullScreen: !!document.fullscreenElement,
             tinyToolBar: false,
             alertDialogOpen: false,
@@ -708,7 +708,7 @@ export
 
         this.setState({
             displayState: newState,
-            canFullScreen: supportsFullScreen() && !this.model_.isAndroidHosted()
+            canFullScreen: supportsFullScreen() && !this.model_.isAndroidHosted() && !onScreenKeyboardEnabled()
         });
         if (newState === State.Ready) {
             if (this.model_.isOnboarding()) {
