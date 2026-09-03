@@ -61,6 +61,7 @@ const DEFAULT_SLOT_COLORS = ["amber", "red", "cyan", "purple", "green", "blue"];
 interface SnapshotStripProps {
     pedalboard: Pedalboard;
     selectedSnapshot: number;
+    onOpenGigView?: () => void;   // swipe up on the strip, or tap its handle
 }
 interface SnapshotStripState {
     sheetIndex: number;         // slot open in the sheet, -1 = closed
@@ -74,6 +75,8 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
     private model: PiPedalModel;
     private pressTimer?: number;
     private pressFired = false;
+    private swipeStartY: number | null = null;
+    private static readonly SWIPE_OPEN_PX = 60;
 
     constructor(props: SnapshotStripProps) {
         super(props);
@@ -118,9 +121,16 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
             this.openSheet(index);
         }, LONG_PRESS_MS);
     }
-    private onPointerUp(index: number) {
+    private onPointerUp(index: number, e?: React.PointerEvent) {
         let wasPending = this.pressTimer !== undefined;
         this.clearPressTimer();
+        // Swipe up from a tile opens the Gig View instead of tapping the tile.
+        if (e && this.swipeStartY !== null && this.swipeStartY - e.clientY > SnapshotStrip.SWIPE_OPEN_PX) {
+            this.swipeStartY = null;
+            this.props.onOpenGigView?.();
+            return;
+        }
+        this.swipeStartY = null;
         if (wasPending && !this.pressFired) {
             // short tap: recall (empty slot: open the sheet so it can be saved)
             if (this.slot(index)) {
@@ -206,8 +216,8 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
         let letter = String.fromCharCode(65 + index); // A, B, C, D = pedal switch names
         return (
             <div key={index}
-                onPointerDown={(e) => { e.preventDefault(); this.onPointerDown(index); }}
-                onPointerUp={() => this.onPointerUp(index)}
+                onPointerDown={(e) => { e.preventDefault(); this.swipeStartY = e.clientY; this.onPointerDown(index); }}
+                onPointerUp={(e) => this.onPointerUp(index, e)}
                 onPointerCancel={() => this.onPointerCancel()}
                 onContextMenu={(e) => { e.preventDefault(); }}
                 style={{
@@ -321,6 +331,15 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
                 padding: "8px 16px 10px 16px", borderTop: `1px solid ${STAGE.border}`, background: STAGE.bg,
             }}>
                 {tiles}
+                {this.props.onOpenGigView && (
+                    <div className="gig-handle" onClick={() => this.props.onOpenGigView!()}
+                        title="Gig view"
+                        style={{
+                            flex: "0 0 34px", height: 60, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center",
+                            border: `1px solid ${STAGE.border}`, color: STAGE.textDim, fontSize: 18, cursor: "pointer",
+                            userSelect: "none", WebkitTapHighlightColor: "transparent",
+                        }}>⌃</div>
+                )}
                 {this.renderSheet()}
             </div>
         );

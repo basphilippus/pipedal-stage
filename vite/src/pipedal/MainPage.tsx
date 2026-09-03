@@ -52,6 +52,7 @@ import OldDeleteIcon from "./svg/old_delete_outline_24dp.svg?react";
 import MidiIcon from "./svg/ic_midi.svg?react";
 import { isDarkMode, isStageTheme } from './DarkMode';
 import SnapshotStrip from './SnapshotStrip';
+import GigView from './GigView';
 import { STAGE } from './StageTheme';
 import Snapshot0Icon from "./svg/snapshot_0.svg?react";
 import Snapshot1Icon from "./svg/snapshot_1.svg?react";
@@ -133,6 +134,7 @@ interface MainState {
     selectedSnapshot: number;
     loadDialogOpen: boolean;
     snapshotDialogOpen: boolean;
+    gigViewOpen: boolean;
     pedalboard: Pedalboard;
     addMenuAnchorEl: HTMLElement | null;
     splitControlBar: boolean;
@@ -182,6 +184,7 @@ export const MainPage =
                         selectedSnapshot: -1,
                         loadDialogOpen: false,
                         snapshotDialogOpen: false,
+                        gigViewOpen: false,
                         displayNameDialogOpen: false,
                         pedalboard: pedalboard,
                         addMenuAnchorEl: null,
@@ -803,7 +806,12 @@ export const MainPage =
                                 }
                             </div>
                             {(this.props.theme.stage && !horizontalScrollLayout) && (
-                                <SnapshotStrip pedalboard={this.state.pedalboard} selectedSnapshot={this.state.selectedSnapshot} />
+                                <SnapshotStrip pedalboard={this.state.pedalboard} selectedSnapshot={this.state.selectedSnapshot}
+                                    onOpenGigView={() => this.setState({ gigViewOpen: true })} />
+                            )}
+                            {this.props.theme.stage && (
+                                <GigView open={this.state.gigViewOpen} pedalboard={this.state.pedalboard}
+                                    selectedSnapshot={this.state.selectedSnapshot} onClose={() => this.setState({ gigViewOpen: false })} />
                             )}
                             <MidiBindingsDialog open={this.state.showMidiBindingsDialog}
                                 onClose={() => this.setState({ showMidiBindingsDialog: false })}
