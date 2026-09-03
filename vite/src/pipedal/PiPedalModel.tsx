@@ -35,7 +35,6 @@ import { BankIndex } from './Banks';
 import JackHostStatus from './JackHostStatus';
 import JackServerSettings from './JackServerSettings';
 import MidiBinding from './MidiBinding';
-import { Footswitch, DEFAULT_FOOTSWITCHES, parseFootswitchConfig, serializeFootswitchConfig } from './FootswitchConfig';
 import { PluginUiPresets } from './PluginPreset';
 import WifiConfigSettings from './WifiConfigSettings';
 import WifiDirectConfigSettings from './WifiDirectConfigSettings';
@@ -575,7 +574,6 @@ export class PiPedalModel //implements PiPedalModel
 
     showStatusMonitor: ObservableProperty<boolean> = new ObservableProperty<boolean>(true);
 
-    footswitches: ObservableProperty<Footswitch[]> = new ObservableProperty<Footswitch[]>(DEFAULT_FOOTSWITCHES);
 
     pedalboard: ObservableProperty<Pedalboard> = new ObservableProperty<Pedalboard>(new Pedalboard());
     presetChanged: ObservableProperty<boolean> = new ObservableProperty<boolean>(false);
@@ -893,8 +891,6 @@ export class PiPedalModel //implements PiPedalModel
         } else if (message === "onShowStatusMonitorChanged") {
             let value = body as boolean;
             this.showStatusMonitor.set(value);
-        } else if (message === "onFootswitchConfigChanged") {
-            this.footswitches.set(parseFootswitchConfig(body as string));
         } else if (message === "onChannelRouterSettingsChanged") {
             let channelRouterSettingChangedBody = body as ChannelRouterSettingsChangedBody;
             let channelRouterSettings = new ChannelRouterSettings().deserialize(
@@ -1512,14 +1508,6 @@ export class PiPedalModel //implements PiPedalModel
             this.showStatusMonitor.set(
                 await this.getWebSocket().request<boolean>("getShowStatusMonitor")
             );
-            try {
-                this.footswitches.set(parseFootswitchConfig(
-                    await this.getWebSocket().request<string>("getFootswitchConfig")
-                ));
-            } catch {
-                // Older daemons don't implement getFootswitchConfig.
-                this.footswitches.set(DEFAULT_FOOTSWITCHES);
-            }
             this.jackServerSettings.set(
                 new JackServerSettings().deserialize(
                     await this.getWebSocket().request<any>("getJackServerSettings")
@@ -2903,53 +2891,6 @@ export class PiPedalModel //implements PiPedalModel
         //     if (v.done) break;
         //     let item = v.value;
         // }
-    }
-
-    setFootswitchConfig(switches: Footswitch[]): void {
-        this.webSocket?.send("setFootswitchConfig", serializeFootswitchConfig(switches));
-    }
-
-    // Assign (or unassign, cc === null) the item's bypass to a foot-switch CC,
-    // clearing that CC's __bypass binding from every other item ("steal").
-    // One pedalboard clone, one server update.
-    setBypassFootswitch(instanceId: number, cc: number | null): void {
-        let pedalboard = this.pedalboard.get();
-        if (!pedalboard) {
-            throw new PiPedalStateError("Pedalboard not loaded.");
-        }
-        let newPedalboard = pedalboard.clone();
-        this.updateVst3State(newPedalboard);
-        let changed = false;
-
-        if (cc !== null) {
-            for (let item of newPedalboard.itemsGenerator()) {
-                if (item.instanceId === instanceId) continue;
-                if (item.isSplit() || item.isStart() || item.isEnd() || item.isEmpty()) continue;
-                let existing = item.getMidiBinding("__bypass");
-                if (existing.bindingType === MidiBinding.BINDING_TYPE_CONTROL && existing.control === cc) {
-                    let cleared = new MidiBinding();
-                    cleared.symbol = "__bypass";
-                    changed = item.setMidiBinding(cleared) || changed;
-                }
-            }
-        }
-
-        let item = newPedalboard.maybeGetItem(instanceId);
-        if (item) {
-            let binding = new MidiBinding();
-            binding.symbol = "__bypass";
-            if (cc !== null) {
-                binding.bindingType = MidiBinding.BINDING_TYPE_CONTROL;
-                binding.control = cc;
-                binding.switchControlType = MidiBinding.TOGGLE_ON_RISING_EDGE;
-            }
-            changed = item.setMidiBinding(binding) || changed;
-        }
-
-        if (changed) {
-            this.setModelPedalboard(newPedalboard);
-            this.updateServerPedalboard();
-        }
     }
 
     setMidiBinding(instanceId: number, midiBinding: MidiBinding): void {

@@ -56,7 +56,6 @@ class UserSettings {
 public:
     std::string governor_ = "performance";
     bool showStatusMonitor_ = true;
-    std::string footswitchConfig_ = "";
     DECLARE_JSON_MAP(UserSettings);
 };
 
@@ -275,8 +274,6 @@ public:
 
     void SetShowStatusMonitor(bool show);
     bool GetShowStatusMonitor() const;
-    void SetFootswitchConfig(const std::string &footswitchConfig);
-    std::string GetFootswitchConfig() const;
     void SetSystemMidiBindings(const std::vector<MidiBinding>&bindings);
     std::vector<MidiBinding> GetSystemMidiBindings();
     void DeleteSampleFile(const std::filesystem::path &fileName);

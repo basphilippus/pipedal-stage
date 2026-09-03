@@ -1599,20 +1599,6 @@ public:
     }
     REGISTER_MESSAGE_HANDLER(getShowStatusMonitor)
 
-    void handle_setFootswitchConfig(int replyTo, json_reader *pReader)
-    {
-        std::string footswitchConfig;
-        pReader->read(&footswitchConfig);
-        this->model.SetFootswitchConfig(footswitchConfig);
-    }
-    REGISTER_MESSAGE_HANDLER(setFootswitchConfig)
-
-    void handle_getFootswitchConfig(int replyTo, json_reader *pReader)
-    {
-        Reply(replyTo, "getFootswitchConfig", this->model.GetFootswitchConfig());
-    }
-    REGISTER_MESSAGE_HANDLER(getFootswitchConfig)
-
     void handle_version(int replyTo, json_reader *pReader)
     {
         PiPedalVersion version(this->model);
@@ -2371,10 +2357,6 @@ private:
     virtual void OnShowStatusMonitorChanged(bool show)
     {
         Send("onShowStatusMonitorChanged", show);
-    }
-    virtual void OnFootswitchConfigChanged(const std::string &footswitchConfig)
-    {
-        Send("onFootswitchConfigChanged", footswitchConfig);
     }
 
     virtual void OnChannelRouterSettingsChanged(int64_t clientId, const ChannelRouterSettings &channelRouterSettings)
