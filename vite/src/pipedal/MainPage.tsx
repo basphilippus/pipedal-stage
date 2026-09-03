@@ -73,6 +73,10 @@ const SHOW_ICON_THRESHHOLD = 475;
 const DISPLAY_AUTHOR_THRESHHOLD = 750;
 const DISPLAY_AUTHOR_SPLIT_THRESHOLD = 500;
 const HORIZONTAL_CONTROL_SCROLL_HEIGHT_BREAK = 500;
+// Stage theme: enlarge the plugin control panel (knobs, labels, values) on wide screens
+// so a 7" kiosk isn't half empty. CSS zoom re-lays-out (unlike transform), and pointer
+// coordinates are mapped by the browser.
+const STAGE_CONTROL_ZOOM = 1.15;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 // const HORIZONTAL_LAYOUT_MQ = "@media (max-height: " + HORIZONTAL_CONTROL_SCROLL_HEIGHT_BREAK + "px)";
@@ -770,7 +774,8 @@ export const MainPage =
                                     </div>
                                 )
                             }
-                            <div id="mainPageControls" className={horizontalScrollLayout ? classes.controlContentSmall : classes.controlContent}>
+                            <div id="mainPageControls" className={horizontalScrollLayout ? classes.controlContentSmall : classes.controlContent}
+                                style={{ zoom: (this.props.theme.stage && !horizontalScrollLayout) ? STAGE_CONTROL_ZOOM : undefined }}>
                                 {
                                     missing ? (
                                         <div style={{ marginLeft: 40, marginTop: 20 }}>
