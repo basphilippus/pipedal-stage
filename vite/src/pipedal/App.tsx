@@ -69,18 +69,7 @@ declare module '@mui/material/Button' {
 // "Stage" theme: dark, high-contrast look for the touchscreen kiosk. Near-black
 // ground, flat panels with hairline borders, one warm amber accent (LED/valve glow),
 // geometric display type. Selected in Settings > Color theme.
-export const STAGE = {
-    bg: "#0e0f11",
-    panel: "#17181b",
-    panelRaised: "#1e2024",
-    border: "#2a2c31",
-    accent: "#f5a524",
-    accentGlow: "0 0 10px rgba(245,165,36,0.55)",
-    text: "#f2f2f2",
-    textDim: "#9aa0a8",
-    displayFont: "'Nexa', 'Roboto', sans-serif",
-    bodyFont: "'Questrial', 'Roboto', sans-serif",
-};
+import { STAGE } from './StageTheme';
 
 function stageThemeOptions(): Parameters<typeof createTheme>[0] {
     return {

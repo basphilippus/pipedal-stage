@@ -18,6 +18,7 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import { ReactNode } from 'react';
+import { STAGE } from './StageTheme';
 import { Theme } from '@mui/material/styles';
 import WithStyles, { withTheme } from './WithStyles';
 import { createStyles } from './WithStyles';
@@ -276,9 +277,11 @@ const styles = (theme: Theme) => createStyles({
         position: "relative",
         paddingLeft: 3,
         paddingRight: 8,
-        paddingTop: 0,
+        paddingTop: theme.stage ? 14 : 0,
         paddingBottom: 0,
         border: theme.stage ? `1px solid ${theme.palette.divider}` : "2pt #AAA solid",
+        background: theme.stage ? STAGE.panelGradient : undefined,
+        boxShadow: theme.stage ? `${STAGE.innerHighlight}, ${STAGE.shadow}` : undefined,
         borderRadius: 8,
         elevation: 12,
         display: "flex",
@@ -295,9 +298,11 @@ const styles = (theme: Theme) => createStyles({
         paddingLeft: 0,
         paddingRight: 0,
 
-        paddingTop: 0,
+        paddingTop: theme.stage ? 14 : 0,
         paddingBottom: 0,
         border: theme.stage ? `1px solid ${theme.palette.divider}` : "2pt #AAA solid",
+        background: theme.stage ? STAGE.panelGradient : undefined,
+        boxShadow: theme.stage ? `${STAGE.innerHighlight}, ${STAGE.shadow}` : undefined,
         borderRadius: 8,
         elevation: 12,
         display: "inline-flex",
@@ -309,8 +314,16 @@ const styles = (theme: Theme) => createStyles({
     }),
     portGroupTitle: css({
         position: "absolute",
-        top: -15,
-        background: theme.mainBackground,
+        // Stage: title sits inside the panel as a small-caps header (no cut through the border).
+        top: theme.stage ? 5 : -15,
+        background: theme.stage ? "transparent" : theme.mainBackground,
+        ...(theme.stage ? {
+            color: STAGE.textDim,
+            fontSize: "0.72rem",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase" as const,
+            marginLeft: 6,
+        } : {}),
         textOverflow: "ellipsis",
         minWidth: 0,
         marginLeft: 20,

@@ -37,6 +37,7 @@ import MenuItem from '@mui/material/MenuItem';
 import { PiPedalModel, PiPedalModelFactory } from './PiPedalModel';
 import DialIcon from './svg/fx_dial.svg?react';
 import { isDarkMode, isStageTheme } from './DarkMode';
+import StageKnob, { updateStageKnob, isStageKnob } from './StageKnob';
 
 
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -59,8 +60,8 @@ enum ButtonStyle { None, Trigger, Momentary, MomentaryOnByDefault }
 
 const SELECTED_OPACITY = 0.8;
 const DEFAULT_OPACITY = 0.6;
-const STAGE_DIAL_RING = 52; // Stage theme: outer value-ring diameter
-const STAGE_DIAL_SIZE = 32; // Stage theme: dial glyph size inside the ring
+const STAGE_DIAL_RING = 52; // Stage theme: knob outer diameter (track arc)
+const STAGE_DIAL_CAP = 34;  // Stage theme: knob cap diameter
 const RANGE_SCALE = 120; // 120 pixels to move from 0 to 1.
 const FINE_RANGE_SCALE = RANGE_SCALE * 10; // 1200 pixels to move from 0 to 1.
 const ULTRA_FINE_RANGE_SCALE = RANGE_SCALE * 50; // 12000 pixels to move from 0 to 1.
@@ -698,12 +699,17 @@ const PluginControl =
                         }
                     } else {
 
-                        let transform = this.rangeToRotationTransform(range);
-                        if (this.mouseDown && !commitValue) {
-                            transform += " scale(1.5, 1.5)";
-                        }
-                        if (imgElement.style) {
-                            imgElement.style.transform = transform;
+                        if (isStageKnob(imgElement)) {
+                            updateStageKnob(imgElement, range);
+                            imgElement.style.transform = (this.mouseDown && !commitValue) ? "scale(1.25)" : "";
+                        } else {
+                            let transform = this.rangeToRotationTransform(range);
+                            if (this.mouseDown && !commitValue) {
+                                transform += " scale(1.5, 1.5)";
+                            }
+                            if (imgElement.style) {
+                                imgElement.style.transform = transform;
+                            }
                         }
                     }
                 }
@@ -755,35 +761,6 @@ const PluginControl =
                     </svg>
                 );
             }
-            // Stage theme: a track arc plus an accent arc from the minimum to the current
-            // value, drawn behind the dial so the position reads at a glance.
-            stageValueRing(size: number): ReactNode {
-                let uiControl = this.props.uiControl;
-                if (!uiControl) return null;
-                const STROKE_WIDTH = 3;
-                let range = uiControl.valueToRange(this.props.value);
-                let cx = size / 2, cy = size / 2;
-                let r = (size - STROKE_WIDTH) / 2;
-                let arc = (fromAngle: number, toAngle: number): string => {
-                    let largeArcFlag = (toAngle - fromAngle) > 180 ? 1 : 0;
-                    let sx = cx + r * Math.sin(fromAngle * Math.PI / 180);
-                    let sy = cy - r * Math.cos(fromAngle * Math.PI / 180);
-                    let ex = cx + r * Math.sin(toAngle * Math.PI / 180);
-                    let ey = cy - r * Math.cos(toAngle * Math.PI / 180);
-                    return `M ${sx} ${sy} A ${r} ${r} 0 ${largeArcFlag} 1 ${ex} ${ey}`;
-                };
-                let valueAngle = MIN_ANGLE + range * (MAX_ANGLE - MIN_ANGLE);
-                let accent = this.props.theme.palette.primary.main;
-                return (
-                    <svg viewBox={"0 0 " + size + " " + size} style={{ width: size, height: size, position: "absolute", left: 0, top: 0, pointerEvents: "none" }}>
-                        <path d={arc(MIN_ANGLE, MAX_ANGLE)} fill="none" stroke="currentColor" strokeWidth={STROKE_WIDTH} opacity={0.18} strokeLinecap="round" />
-                        {range > 0.005 && (
-                            <path d={arc(MIN_ANGLE, valueAngle)} fill="none" stroke={accent} strokeWidth={STROKE_WIDTH} strokeLinecap="round"
-                                style={{ filter: `drop-shadow(0 0 3px ${accent})` }} />
-                        )}
-                    </svg>
-                );
-            }
             previewRange(dRange: number, commitValue: boolean): void {
                 let range = (this.props.uiControl?.valueToRange(this.currentValue) ?? 0) + dRange;
                 if (range > 1) range = 1;
@@ -802,7 +779,9 @@ const PluginControl =
                 } else {
                     let imgElement = this.imgRef.current
                     if (imgElement) {
-                        if (imgElement.style) {
+                        if (isStageKnob(imgElement)) {
+                            updateStageKnob(imgElement, range);
+                        } else if (imgElement.style) {
                             imgElement.style.transform = this.rangeToRotationTransform(range);
                         }
                     }
@@ -1140,20 +1119,15 @@ const PluginControl =
                                         <div style={{ flex: "0 1 auto" }}>
                                             <ControlTooltip uiControl={control}
                                                 valueTooltip={this.state.previewValue}>
-                                                <div style={{ position: "relative", width: STAGE_DIAL_RING, height: STAGE_DIAL_RING, color: dialColor }}>
-                                                    {this.stageValueRing(STAGE_DIAL_RING)}
-                                                    <DialIcon ref={this.imgRef}
-                                                        style={{
-                                                            position: "absolute", left: (STAGE_DIAL_RING - STAGE_DIAL_SIZE) / 2, top: (STAGE_DIAL_RING - STAGE_DIAL_SIZE) / 2,
-                                                            overscrollBehavior: "none", touchAction: "none", fill: dialColor,
-                                                            width: STAGE_DIAL_SIZE, height: STAGE_DIAL_SIZE, opacity: 0.9, transform: this.getRotationTransform()
-                                                        }}
-                                                        onTouchStart={this.onTouchStart} onTouchMove={this.onTouchMove}
-                                                        onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp}
-                                                        onPointerMove={this.onPointerMove}
-                                                        onDrag={this.onDrag}
-                                                    />
-                                                </div>
+                                                <StageKnob ref={this.imgRef}
+                                                    size={STAGE_DIAL_RING} capSize={STAGE_DIAL_CAP}
+                                                    range={control.valueToRange(value)}
+                                                    accent={this.props.theme.palette.primary.main}
+                                                    onTouchStart={this.onTouchStart} onTouchMove={this.onTouchMove}
+                                                    onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp}
+                                                    onPointerMove={this.onPointerMove}
+                                                    onDrag={this.onDrag}
+                                                />
                                             </ControlTooltip>
                                         </div>
                                     ) : (
