@@ -101,6 +101,10 @@ function stageThemeOptions(): Parameters<typeof createTheme>[0] {
                     body: { backgroundColor: STAGE.bg },
                     // Touch UI: no scrollbars in the plugin control panel (content still scrolls).
                     '#mainPageControls ::-webkit-scrollbar, #pedalboardScroll::-webkit-scrollbar': { display: 'none' },
+                    // Keyboard up: snapshot sheet hugs the top and drops its secondary controls so
+                    // Name + Save stay visible above the keys.
+                    'body.osk-visible .snapshot-sheet .MuiDialog-container': { alignItems: 'flex-start', paddingTop: 6 },
+                    'body.osk-visible .snapshot-sheet .snapshot-sheet-extra': { display: 'none !important' }, // beats the inline display:flex
                     '#mainPageControls *, #pedalboardScroll': { scrollbarWidth: 'none' },
                 },
             },

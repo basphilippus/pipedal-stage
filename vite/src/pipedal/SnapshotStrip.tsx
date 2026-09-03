@@ -159,6 +159,7 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
         snapshot.color = this.state.sheetColor;
         snapshots[index] = snapshot;
         this.model.setSnapshots(snapshots, index);
+        this.model.saveCurrentPreset(); // snapshots live in the preset: persist, or a preset change loses them
         this.closeSheet();
     }
     private applyNameAndColor() {
@@ -169,6 +170,7 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
             snapshot.name = this.sheetNameOrDefault();
             snapshot.color = this.state.sheetColor;
             this.model.setSnapshots(snapshots, -1);
+            this.model.saveCurrentPreset();
         }
         this.closeSheet();
     }
@@ -183,6 +185,7 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
             copy.isModified = false;
             snapshots[index] = copy;
             this.model.setSnapshots(snapshots, -1);
+            this.model.saveCurrentPreset();
         }
         this.closeSheet();
     }
@@ -191,6 +194,7 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
         let snapshots = this.snapshots();
         snapshots[index] = null;
         this.model.setSnapshots(snapshots, -1);
+        this.model.saveCurrentPreset();
         this.closeSheet();
     }
 
@@ -254,7 +258,7 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
             if (i !== index && this.slot(i)) others.push(i);
         }
         return (
-            <Dialog open={true} onClose={() => this.closeSheet()} maxWidth="xs" fullWidth>
+            <Dialog open={true} onClose={() => this.closeSheet()} maxWidth="xs" fullWidth className="snapshot-sheet">
                 <DialogTitle style={{ fontFamily: STAGE.displayFont, letterSpacing: "0.04em" }}>
                     Snapshot {String.fromCharCode(65 + index)}
                 </DialogTitle>
@@ -262,7 +266,7 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
                     <TextField variant="standard" fullWidth label="Name" value={this.state.sheetName}
                         inputProps={{ maxLength: 16 }}
                         onChange={(e) => this.setState({ sheetName: e.target.value })} />
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
+                    <div className="snapshot-sheet-extra" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
                         {colorKeys.map((key) => (
                             <div key={key} onClick={() => this.setState({ sheetColor: key })}
                                 style={{
@@ -275,8 +279,11 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
                         <Button variant="contained" color="primary" onClick={() => this.saveHere()}>
                             {existing ? "Save current sound here" : "Save current sound"}
                         </Button>
+                        <div className="snapshot-sheet-extra" style={{ fontSize: 12, color: STAGE.textDim, textAlign: "center" }}>
+                            Saves the preset too.
+                        </div>
                         {others.length > 0 && (
-                            <Button variant="outlined" color="inherit" onClick={(e) => this.setState({ copyMenuAnchor: e.currentTarget })}>
+                            <Button className="snapshot-sheet-extra" variant="outlined" color="inherit" onClick={(e) => this.setState({ copyMenuAnchor: e.currentTarget })}>
                                 Copy from…
                             </Button>
                         )}
@@ -289,7 +296,7 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
                             ))}
                         </Menu>
                         {existing && (
-                            <Button variant="text" color="inherit" style={{ opacity: 0.7 }} onClick={() => this.clearSlot()}>
+                            <Button className="snapshot-sheet-extra" variant="text" color="inherit" style={{ opacity: 0.7 }} onClick={() => this.clearSlot()}>
                                 Clear slot
                             </Button>
                         )}

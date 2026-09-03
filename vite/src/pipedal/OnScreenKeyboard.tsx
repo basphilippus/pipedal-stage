@@ -73,6 +73,14 @@ export default class OnScreenKeyboard extends React.Component<{}, OnScreenKeyboa
         return ["text", "search", "number", "password", "email", "url", "tel"].indexOf(el.type) !== -1;
     }
 
+    // Mirrors visibility on <body class="osk-visible"> so dialogs can make room
+    // (see App.tsx MuiCssBaseline overrides, e.g. the Stage snapshot sheet).
+    componentDidUpdate(_prevProps: {}, prevState: OnScreenKeyboardState) {
+        if (prevState.visible !== this.state.visible) {
+            document.body.classList.toggle("osk-visible", this.state.visible);
+        }
+    }
+
     private handleFocusIn(e: FocusEvent) {
         if (OnScreenKeyboard.isTextField(e.target)) {
             this.target = e.target;

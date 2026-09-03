@@ -81,11 +81,23 @@ export default class FootswitchSelector
         return binding.control;
     }
 
+    // CCs bound to snapshot1..6 in System MIDI bindings select snapshots; a block bound to
+    // the same CC would toggle on every snapshot change.
+    private snapshotCcs(): Set<number> {
+        let result = new Set<number>();
+        for (let b of this.model.systemMidiBindings.get()) {
+            if (b.bindingType === MidiBinding.BINDING_TYPE_CONTROL && /^snapshot[1-6]$/.test(b.symbol)) {
+                result.add(b.control);
+            }
+        }
+        return result;
+    }
     private currentLabel(): string {
         let cc = this.currentCc();
         if (cc === null) return "–"; // – unassigned
         let footswitch = this.state.footswitches.find((s) => s.cc === cc);
-        return footswitch ? footswitch.name : "CC" + cc;
+        let label = footswitch ? footswitch.name : "CC" + cc;
+        return this.snapshotCcs().has(cc) ? label + " !" : label;
     }
 
     private handleSelect(cc: number | null) {
@@ -103,7 +115,9 @@ export default class FootswitchSelector
         let currentCc = this.currentCc();
         return (
             <div style={{ flex: "0 0 auto" }}>
-                <ToolTipEx title="Foot switch">
+                <ToolTipEx title={currentCc !== null && this.snapshotCcs().has(currentCc)
+                    ? "Foot switch — CC also selects a snapshot; unassign (–) to stop the double action"
+                    : "Foot switch"}>
                     <Button size="small" variant="text" color="inherit"
                         style={{ textTransform: "none", minWidth: 36, opacity: currentCc === null ? 0.6 : 1.0 }}
                         onClick={(e) => this.setState({ menuAnchorEl: e.currentTarget })}
@@ -118,12 +132,17 @@ export default class FootswitchSelector
                     <MenuItem selected={currentCc === null} onClick={() => this.handleSelect(null)}>
                         {"–"}
                     </MenuItem>
-                    {this.state.footswitches.map((footswitch) => (
+                    {this.state.footswitches.filter((footswitch) => !this.snapshotCcs().has(footswitch.cc)).map((footswitch) => (
                         <MenuItem key={footswitch.cc} selected={currentCc === footswitch.cc}
                             onClick={() => this.handleSelect(footswitch.cc)}>
                             {footswitch.name + " (CC " + footswitch.cc + ")"}
                         </MenuItem>
                     ))}
+                    {this.state.footswitches.some((footswitch) => this.snapshotCcs().has(footswitch.cc)) && (
+                        <MenuItem disabled dense>
+                            {this.state.footswitches.filter((f) => this.snapshotCcs().has(f.cc)).map((f) => f.name).join(", ") + ": snapshot switches"}
+                        </MenuItem>
+                    )}
                     <Divider />
                     <MenuItem onClick={() => this.setState({ menuAnchorEl: null, editDialogOpen: true })}>
                         Edit switches…
