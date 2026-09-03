@@ -25,6 +25,8 @@ import CssBaseline from '@mui/material/CssBaseline';
 import VirtualKeyboardHandler from './VirtualKeyboardHandler';
 import AppThemed from "./AppThemed";
 import { isDarkMode, isStageTheme } from './DarkMode';
+import { onScreenKeyboardEnabled } from './OnScreenKeyboard';
+import { PiPedalModelFactory } from './PiPedalModel';
 import Tone3000AuthComplete from './Tone3000AuthComplete';
 import FontTest from './FontTest';
 
@@ -383,6 +385,12 @@ type AppThemeProps = {
 
 };
 
+
+// Kiosk-only debug hook: the smoke test and one-off maintenance scripts reach the model via
+// DevTools (window.pipedalModel). Only when the UI is loaded from localhost / ?vkb=1.
+if (onScreenKeyboardEnabled()) {
+    (window as any).pipedalModel = PiPedalModelFactory.getInstance();
+}
 
 function isTone3000Auth() {
     let url = new URL(window.location.href);
