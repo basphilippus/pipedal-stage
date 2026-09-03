@@ -39,7 +39,7 @@ import ImportPresetFromBankDialog from './ImportPresetFromBankDialog';
 
 import Select from '@mui/material/Select';
 import UploadPresetDialog from './UploadPresetDialog';
-import { isDarkMode } from './DarkMode';
+import { isDarkMode, isStageTheme } from './DarkMode';
 import ResizeResponsiveComponent from './ResizeResponsiveComponent';
 
 interface PresetSelectorProps extends WithStyles<typeof styles> {
@@ -355,14 +355,17 @@ const PresetSelector =
                         marginLeft: 12, display: "flex", flexDirection: "row",
                         justifyContent: "left", flexWrap: "nowrap", alignItems: "center", height: "100%", position: "relative"
                     }}>
-                        <div style={{ flex: "0 0 auto" }}>
-                            <IconButtonEx tooltip="Save current preset"
-                                style={{ flex: "0 0 auto", color: "#FFFFFF" }}
-                                onClick={(e) => { this.handleSave(); }}
-                                size="large">
-                                <SaveIconOutline style={{ opacity: 0.75 }} color="inherit" />
-                            </IconButtonEx>
-                        </div>
+                        {(!isStageTheme() || presets.presetChanged) && (
+                            // Stage: the save icon only appears while there is something to save.
+                            <div style={{ flex: "0 0 auto" }}>
+                                <IconButtonEx tooltip="Save current preset"
+                                    style={{ flex: "0 0 auto", color: "#FFFFFF" }}
+                                    onClick={(e) => { this.handleSave(); }}
+                                    size="large">
+                                    <SaveIconOutline style={{ opacity: 0.75 }} color="inherit" />
+                                </IconButtonEx>
+                            </div>
+                        )}
 
                         <div style={{ flex: "1 1 auto", minWidth: 60, maxWidth: 300, position: "relative", paddingRight: 12 }} >
                             <Select variant="standard"
@@ -383,7 +386,9 @@ const PresetSelector =
                                         return (
                                             <MenuItem key={preset.instanceId} value={preset.instanceId} >
                                                 {(presets.presetChanged && preset.instanceId === presets.selectedInstanceId)
-                                                    ? (preset.name + "*")
+                                                    ? (isStageTheme()
+                                                        ? <span style={{ fontStyle: "italic" }}>{preset.name}</span> // Stage: italic = unsaved (QC convention)
+                                                        : preset.name + "*")
                                                     : (preset.name)
                                                 }
                                             </MenuItem>

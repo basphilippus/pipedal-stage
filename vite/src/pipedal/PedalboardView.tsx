@@ -780,7 +780,30 @@ const PedalboardView =
 
                 }
 
+                // Stage theme: a second tap on the same tile within 400 ms toggles its bypass
+                // (Quad Cortex behaviour). Own detection: touch double-taps don't reliably
+                // produce dblclick.
+                private lastTapId: number | undefined = undefined;
+                private lastTapTime = 0;
+                private stageDoubleTap(instanceId?: number): boolean {
+                    if (!this.props.theme.stage || !instanceId) return false;
+                    let now = performance.now();
+                    let isDouble = this.lastTapId === instanceId && (now - this.lastTapTime) < 400;
+                    this.lastTapId = instanceId;
+                    this.lastTapTime = isDouble ? 0 : now;
+                    if (!isDouble) return false;
+                    let item = this.state.pedalboard?.getItem(instanceId);
+                    if (!item || item.isStart() || item.isEnd() || item.isSplit() || item.isEmpty()) return false;
+                    this.model.setPedalboardItemEnabled(instanceId, !item.isEnabled);
+                    return true;
+                }
+
                 onItemClick(e: SyntheticEvent, instanceId?: number): void {
+                    if (this.stageDoubleTap(instanceId)) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                    }
                     if (instanceId) {
                         this.setSelection(instanceId);
                     }
