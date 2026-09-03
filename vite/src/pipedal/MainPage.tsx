@@ -251,11 +251,16 @@ export const MainPage =
                     this.setState({ showMidiBindingsDialog: true });
                 }
                 handleEnableCurrentItemChanged(event: any): void {
-                    let newValue = event.target.checked;
+                    // Toggle from the model's state, not event.target.checked, and from
+                    // onClick rather than onChange: on touch, Chromium delivers mousedown/
+                    // mouseup/click in one task, and React 19 flushes MUI's pending ripple/
+                    // focus updates during the click's capture phase, rewriting the
+                    // controlled `checked` from the stale prop before change detection
+                    // runs, so onChange never fires (seen on the kiosk touchscreen).
+                    event.preventDefault();
                     let item = this.getSelectedPedalboardItem();
                     if (item != null) {
-                        this.model.setPedalboardItemEnabled(item.getInstanceId(), newValue);
-
+                        this.model.setPedalboardItemEnabled(item.getInstanceId(), !item.isEnabled);
                     }
                 }
                 handleSelectPluginPreset(instanceId: number, presetInstanceId: number) {
@@ -689,7 +694,7 @@ export const MainPage =
                                         <div style={{ display: bypassVisible ? "flex" : "none", flexFlow: "row nowrap", alignItems: "center" }} >
                                             <ToolTipEx title="Bypass"
                                             >
-                                                <Switch color="secondary" checked={bypassChecked} onChange={this.handleEnableCurrentItemChanged} />
+                                                <Switch color="secondary" checked={bypassChecked} onClick={this.handleEnableCurrentItemChanged} onChange={() => { }} />
                                             </ToolTipEx>
                                             <FootswitchSelector pedalboardItem={pedalboardItem} />
                                         </div>
