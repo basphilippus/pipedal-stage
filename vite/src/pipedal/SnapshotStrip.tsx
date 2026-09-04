@@ -199,6 +199,15 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
         }
         this.closeSheet();
     }
+    // Back to the preset as saved, with no snapshot selected (see GigView.recallBase).
+    private recallBase() {
+        let presets = this.model.presets.get();
+        if (presets.selectedInstanceId !== 0) {
+            this.model.loadPreset(presets.selectedInstanceId);
+        }
+        this.model.selectSnapshot(-1);
+        this.closeSheet();
+    }
     private clearSlot() {
         let index = this.state.sheetIndex;
         let snapshots = this.snapshots();
@@ -305,6 +314,11 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
                                 </MenuItem>
                             ))}
                         </Menu>
+                        {this.props.selectedSnapshot >= 0 && (
+                            <Button className="snapshot-sheet-extra" variant="outlined" color="inherit" onClick={() => this.recallBase()}>
+                                Back to preset (no snapshot)
+                            </Button>
+                        )}
                         {existing && (
                             <Button className="snapshot-sheet-extra" variant="text" color="inherit" style={{ opacity: 0.7 }} onClick={() => this.clearSlot()}>
                                 Clear slot
