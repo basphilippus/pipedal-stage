@@ -1747,6 +1747,20 @@ public:
     }
     REGISTER_MESSAGE_HANDLER(previousBank)
 
+    void handle_getPresetPage(int replyTo, json_reader *pReader)
+    {
+        Reply(replyTo, "getPresetPage", this->model.GetPresetPage());
+    }
+    REGISTER_MESSAGE_HANDLER(getPresetPage)
+
+    void handle_setPresetPage(int replyTo, json_reader *pReader)
+    {
+        int64_t page = 0;
+        pReader->read(&page);
+        this->model.SetPresetPage(page);
+    }
+    REGISTER_MESSAGE_HANDLER(setPresetPage)
+
     void handle_nextPreset(int replyTo, json_reader *pReader)
     {
         model.NextPreset();
@@ -2357,6 +2371,10 @@ private:
     virtual void OnShowStatusMonitorChanged(bool show)
     {
         Send("onShowStatusMonitorChanged", show);
+    }
+    virtual void OnPresetPageChanged(int64_t page)
+    {
+        Send("onPresetPageChanged", page);
     }
 
     virtual void OnChannelRouterSettingsChanged(int64_t clientId, const ChannelRouterSettings &channelRouterSettings)

@@ -362,22 +362,60 @@ std::vector<uint8_t> MidiFeedbackController::MakePcLabelSysEx(uint8_t program, c
     return frame;
 }
 
+// The pedal's preset keys show the current preset page: key n = preset page*4+n.
+// The lit key is the selected preset if it is on this page; otherwise a program
+// number beyond the keys is sent, which the firmware shows as "no key lit".
 void MidiFeedbackController::EnqueuePresetLabels(const PresetIndex &presets)
 {
     const auto &entries = presets.presets();
-    for (size_t i = 0; i < entries.size() && i < 8; ++i)
+    const int64_t pageSize = PiPedalModel::PRESET_PAGE_SIZE;
+    int64_t first = model.GetPresetPage() * pageSize;
+
+    int64_t program = pageSize; // none
+    for (size_t i = 0; i < entries.size(); ++i)
     {
+        if (entries[i].instanceId() == presets.selectedInstanceId())
+        {
+            int64_t rel = (int64_t)i - first;
+            if (rel >= 0 && rel < pageSize)
+            {
+                program = rel;
+            }
+            break;
+        }
+    }
+    if (program != lastProgramSent)
+    {
+        lastProgramSent = program;
+        Event event;
+        event.type = EvType::SendPC;
+        event.channel = ResolveChannel(-1);
+        event.d1 = (uint8_t)program;
+        Enqueue(std::move(event));
+    }
+
+    for (int64_t i = 0; i < pageSize; ++i)
+    {
+        size_t ix = (size_t)(first + i);
+        std::string name = ix < entries.size() ? entries[ix].name() : "-";
         auto found = lastSentPcLabels.find((uint8_t)i);
-        if (found != lastSentPcLabels.end() && found->second == entries[i].name())
+        if (found != lastSentPcLabels.end() && found->second == name)
         {
             continue; // unchanged since last send
         }
-        lastSentPcLabels[(uint8_t)i] = entries[i].name();
+        lastSentPcLabels[(uint8_t)i] = name;
         Event event;
         event.type = EvType::SendSysEx;
-        event.sysex = MakePcLabelSysEx((uint8_t)i, entries[i].name());
+        event.sysex = MakePcLabelSysEx((uint8_t)i, name);
         Enqueue(std::move(event));
     }
+}
+
+void MidiFeedbackController::OnPresetPageChanged(int64_t page)
+{
+    PresetIndex presets;
+    model.GetPresets(&presets);
+    EnqueuePresetLabels(presets);
 }
 
 void MidiFeedbackController::Enqueue(Event &&event)
@@ -627,23 +665,6 @@ void MidiFeedbackController::OnPedalboardChanged(int64_t clientId, const Pedalbo
 
 void MidiFeedbackController::OnPresetsChanged(int64_t clientId, const PresetIndex &presets)
 {
-    const auto &entries = presets.presets();
-    for (size_t i = 0; i < entries.size() && i < 128; ++i)
-    {
-        if (entries[i].instanceId() == presets.selectedInstanceId())
-        {
-            if ((int64_t)i != lastProgramSent)
-            {
-                lastProgramSent = (int64_t)i;
-                Event event;
-                event.type = EvType::SendPC;
-                event.channel = ResolveChannel(-1);
-                event.d1 = (uint8_t)i;
-                Enqueue(std::move(event));
-            }
-            break;
-        }
-    }
     EnqueuePresetLabels(presets);
 }
 

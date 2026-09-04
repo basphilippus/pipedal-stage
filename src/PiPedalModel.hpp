@@ -72,6 +72,7 @@ namespace pipedal
         virtual void OnVst3ControlChanged(int64_t clientId, int64_t pedalItemId, const std::string &symbol, float value, const std::string &state) = 0;
         virtual void OnPedalboardChanged(int64_t clientId, const Pedalboard &pedalboard) = 0;
         virtual void OnPresetsChanged(int64_t clientId, const PresetIndex &presets) = 0;
+        virtual void OnPresetPageChanged(int64_t page) = 0;
         virtual void OnPresetChanged(bool changed) = 0;
         virtual void OnSnapshotModified(int64_t selectedSnapshot, bool modified) = 0;
         virtual void OnSelectedSnapshotChanged(int64_t selectedSnapshot) = 0;
@@ -312,6 +313,15 @@ namespace pipedal
         void PreviousBank() { NextBank(Direction::Decrease); }
         void NextPreset(Direction direction = Direction::Increase);
         void PreviousPreset() { NextPreset(Direction::Decrease); }
+
+        // Preset paging (rig feature): the MIDI controller's four preset switches address
+        // PRESET_PAGE_SIZE presets at a time; its UP/DOWN switches (nextProgram/prevProgram
+        // bindings) and the UI's pager move the page. Loading a preset that is off-page
+        // moves the page to it. Shared by the pedal (via MidiFeedbackController) and the UI.
+        static constexpr int64_t PRESET_PAGE_SIZE = 4;
+        int64_t GetPresetPage();
+        void SetPresetPage(int64_t page);
+        void NextPresetPage(Direction direction = Direction::Increase);
         void NextSnapshot(Direction direction = Direction::Increase);
         void PreviousSnapshot() { NextSnapshot(Direction::Decrease); }
 
@@ -442,6 +452,10 @@ namespace pipedal
         std::vector<AlsaSequencerPortSelection> GetAlsaSequencerPorts();
 
         void SelectDefaultSnapshot();
+        int64_t presetPage_ = 0;
+        int64_t PageOfPreset(int64_t instanceId);
+        int64_t PresetPageCount();
+        void FirePresetPageChanged(int64_t page);
         void SetShowStatusMonitor(bool show);
         bool GetShowStatusMonitor();
 

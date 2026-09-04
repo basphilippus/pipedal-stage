@@ -43,6 +43,7 @@ namespace pipedal
         void OnPresetsChanged(int64_t clientId, const PresetIndex &presets) override {}
         void OnPresetChanged(bool changed) override {}
         void OnSnapshotModified(int64_t selectedSnapshot, bool modified) override {}
+        void OnPresetPageChanged(int64_t page) override {}
         void OnSelectedSnapshotChanged(int64_t selectedSnapshot) override {}
         void OnPluginPresetsChanged(const std::string &pluginUri) override {}
         void OnChannelRouterSettingsChanged(int64_t clientId, const ChannelRouterSettings &channelRouterSettings) override {}

@@ -69,6 +69,7 @@ namespace pipedal
         void OnPresetsChanged(int64_t clientId, const PresetIndex &presets) override;
         void OnAlsaSequencerConfigurationChanged(const AlsaSequencerConfiguration &configuration) override;
         void OnSelectedSnapshotChanged(int64_t selectedSnapshot) override;
+        void OnPresetPageChanged(int64_t page) override;
         void OnSystemMidiBindingsChanged(const std::vector<MidiBinding> &bindings) override;
 
     private:
@@ -155,7 +156,7 @@ namespace pipedal
         std::vector<uint8_t> MakeSetSwitchSysEx(const BypassBinding &binding) const;
         static std::vector<uint8_t> MakeClearAllSysEx();
         static std::vector<uint8_t> MakePcLabelSysEx(uint8_t program, const std::string &name);
-        void EnqueuePresetLabels(const PresetIndex &presets);
+        void EnqueuePresetLabels(const PresetIndex &presets); // labels + lit key for the current preset page
 
         void SenderThreadProc(std::stop_token stopToken);
     };

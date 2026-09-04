@@ -578,6 +578,8 @@ export class PiPedalModel //implements PiPedalModel
     pedalboard: ObservableProperty<Pedalboard> = new ObservableProperty<Pedalboard>(new Pedalboard());
     presetChanged: ObservableProperty<boolean> = new ObservableProperty<boolean>(false);
     selectedSnapshot: ObservableProperty<number> = new ObservableProperty<number>(-1);
+    // Preset page shared with the MIDI controller (4 presets per page; see PiPedalModel::SetPresetPage).
+    presetPage: ObservableProperty<number> = new ObservableProperty<number>(0);
     plugin_classes: ObservableProperty<PluginClass> = new ObservableProperty<PluginClass>(new PluginClass());
     jackConfiguration: ObservableProperty<JackConfiguration> = new ObservableProperty<JackConfiguration>(new JackConfiguration());
     jackSettings: ObservableProperty<JackChannelSelection> = new ObservableProperty<JackChannelSelection>(new JackChannelSelection());
@@ -908,6 +910,8 @@ export class PiPedalModel //implements PiPedalModel
                     }
                 }
             }
+        } else if (message === "onPresetPageChanged") {
+            this.presetPage.set(body as number);
         } else if (message === "onSelectedSnapshotChanged") {
             let selectedSnapshot = body as number;
             this.pedalboard.get().selectedSnapshot = selectedSnapshot;
@@ -1508,6 +1512,11 @@ export class PiPedalModel //implements PiPedalModel
             this.showStatusMonitor.set(
                 await this.getWebSocket().request<boolean>("getShowStatusMonitor")
             );
+            try {
+                this.presetPage.set(await this.getWebSocket().request<number>("getPresetPage"));
+            } catch {
+                this.presetPage.set(0); // stock daemon: no paging
+            }
             this.jackServerSettings.set(
                 new JackServerSettings().deserialize(
                     await this.getWebSocket().request<any>("getJackServerSettings")
@@ -1798,6 +1807,9 @@ export class PiPedalModel //implements PiPedalModel
     }
     nextPreset() {
         this.webSocket?.send("nextPreset");
+    }
+    setPresetPage(page: number) {
+        this.webSocket?.send("setPresetPage", page);
     }
     previousPreset() {
         this.webSocket?.send("previousPreset");

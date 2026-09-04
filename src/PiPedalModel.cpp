@@ -1273,15 +1273,9 @@ void PiPedalModel::OnNotifyNextMidiProgram(const RealtimeNextMidiProgramRequest 
     std::lock_guard<std::recursive_mutex> guard{mutex};
     try
     {
-
-        if (request.direction >= 0)
-        {
-            NextPreset();
-        }
-        else
-        {
-            PreviousPreset();
-        }
+        // Rig: the controller's UP/DOWN switches page the preset switches (bank up/down
+        // on a Quad Cortex) instead of stepping through presets.
+        NextPresetPage(request.direction >= 0 ? Direction::Increase : Direction::Decrease);
     }
     catch (std::exception &e)
     {
@@ -1354,7 +1348,23 @@ void PiPedalModel::OnNotifyMidiProgramChange(RealtimeMidiProgramRequest &midiPro
                 FirePresetsChanged(-1);
             }
         }
-        int64_t presetId = storage.GetPresetByProgramNumber(midiProgramRequest.program);
+        // Rig: programs 0..PRESET_PAGE_SIZE-1 address the current preset page; higher
+        // program numbers keep their absolute meaning.
+        int64_t presetId = -1;
+        if (midiProgramRequest.program < PRESET_PAGE_SIZE)
+        {
+            PresetIndex index;
+            storage.GetPresetIndex(&index);
+            size_t ix = (size_t)(presetPage_ * PRESET_PAGE_SIZE + midiProgramRequest.program);
+            if (ix < index.presets().size())
+            {
+                presetId = index.presets()[ix].instanceId();
+            }
+        }
+        else
+        {
+            presetId = storage.GetPresetByProgramNumber(midiProgramRequest.program);
+        }
         if (presetId == -1)
             throw PiPedalException("No valid preset.");
         LoadPreset(-1, presetId);
@@ -1414,6 +1424,76 @@ void PiPedalModel::LoadPreset(int64_t clientId, int64_t instanceId)
         this->hasPresetChanged = false; // no fire.
         this->FirePedalboardChanged(clientId);
         this->FirePresetsChanged(clientId); // fire now.
+
+        int64_t page = PageOfPreset(instanceId);
+        if (page >= 0 && page != presetPage_)
+        {
+            presetPage_ = page;
+            FirePresetPageChanged(page);
+        }
+    }
+}
+
+int64_t PiPedalModel::PageOfPreset(int64_t instanceId)
+{
+    PresetIndex index;
+    storage.GetPresetIndex(&index);
+    const auto &entries = index.presets();
+    for (size_t i = 0; i < entries.size(); ++i)
+    {
+        if (entries[i].instanceId() == instanceId)
+        {
+            return (int64_t)i / PRESET_PAGE_SIZE;
+        }
+    }
+    return -1;
+}
+
+int64_t PiPedalModel::PresetPageCount()
+{
+    PresetIndex index;
+    storage.GetPresetIndex(&index);
+    int64_t n = (int64_t)index.presets().size();
+    return std::max<int64_t>(1, (n + PRESET_PAGE_SIZE - 1) / PRESET_PAGE_SIZE);
+}
+
+int64_t PiPedalModel::GetPresetPage()
+{
+    std::lock_guard<std::recursive_mutex> guard{mutex};
+    return presetPage_;
+}
+
+void PiPedalModel::SetPresetPage(int64_t page)
+{
+    int64_t newPage;
+    {
+        std::lock_guard<std::recursive_mutex> guard{mutex};
+        int64_t count = PresetPageCount();
+        newPage = ((page % count) + count) % count; // wrap
+        if (newPage == presetPage_)
+        {
+            return;
+        }
+        presetPage_ = newPage;
+    }
+    FirePresetPageChanged(newPage);
+}
+
+void PiPedalModel::NextPresetPage(Direction direction)
+{
+    SetPresetPage(presetPage_ + (direction == Direction::Decrease ? -1 : 1));
+}
+
+void PiPedalModel::FirePresetPageChanged(int64_t page)
+{
+    SubscriberList subscribers;
+    {
+        std::lock_guard<std::recursive_mutex> guard{mutex};
+        subscribers = this->subscribers;
+    }
+    for (auto &subscriber : subscribers)
+    {
+        subscriber->OnPresetPageChanged(page);
     }
 }
 

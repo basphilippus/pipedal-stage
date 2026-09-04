@@ -44,7 +44,7 @@ interface GigViewProps {
 }
 interface GigViewState {
     presets: PresetIndex;
-    page: number | null;   // null = follow the selected preset
+    page: number;          // shared with the pedal (model.presetPage)
 }
 
 export default class GigView extends React.Component<GigViewProps, GigViewState> {
@@ -54,13 +54,21 @@ export default class GigView extends React.Component<GigViewProps, GigViewState>
     constructor(props: GigViewProps) {
         super(props);
         this.model = PiPedalModelFactory.getInstance();
-        this.state = { presets: this.model.presets.get(), page: null };
+        this.state = { presets: this.model.presets.get(), page: this.model.presetPage.get() };
         this.onPresetsChanged = this.onPresetsChanged.bind(this);
+        this.onPageChanged = this.onPageChanged.bind(this);
     }
-    private onPresetsChanged(value: PresetIndex) { this.setState({ presets: value, page: null }); }
+    private onPresetsChanged(value: PresetIndex) { this.setState({ presets: value }); }
+    private onPageChanged(value: number) { this.setState({ page: value }); }
 
-    componentDidMount() { this.model.presets.addOnChangedHandler(this.onPresetsChanged); }
-    componentWillUnmount() { this.model.presets.removeOnChangedHandler(this.onPresetsChanged); }
+    componentDidMount() {
+        this.model.presets.addOnChangedHandler(this.onPresetsChanged);
+        this.model.presetPage.addOnChangedHandler(this.onPageChanged);
+    }
+    componentWillUnmount() {
+        this.model.presets.removeOnChangedHandler(this.onPresetsChanged);
+        this.model.presetPage.removeOnChangedHandler(this.onPageChanged);
+    }
 
     // ---- swipe down anywhere (tiles included) closes; the tap that ends a swipe is ignored ----
     private swiped = false;
@@ -138,12 +146,12 @@ export default class GigView extends React.Component<GigViewProps, GigViewState>
                 boxShadow: `${STAGE.innerHighlight}, ${STAGE.shadow}`, touchAction: "none",
                 display: "flex", flexDirection: "column", overflow: "hidden",
             }}>
-                {half("▲", page > 0, () => this.setState({ page: page - 1 }))}
+                {half("▲", pageCount > 1, () => this.model.setPresetPage(page - 1))}
                 <div style={{
                     textAlign: "center", fontFamily: STAGE.displayFont, fontSize: 12, letterSpacing: "0.1em",
                     color: STAGE.textDim, padding: "4px 0", borderTop: `1px solid ${STAGE.border}`, borderBottom: `1px solid ${STAGE.border}`,
                 }}>{total === 0 ? "NO PRESETS" : `${first}–${last} OF ${total}`}</div>
-                {half("▼", page < pageCount - 1, () => this.setState({ page: page + 1 }))}
+                {half("▼", pageCount > 1, () => this.model.setPresetPage(page + 1))}
             </div>
         );
     }
@@ -167,12 +175,10 @@ export default class GigView extends React.Component<GigViewProps, GigViewState>
         // steps presets; the screen pages via the pager below).
         top.push(<div key="spacer" style={{ flex: "1 1 0", minWidth: 0 }} />);
 
-        // Presets come in pages of four (the pedal's PC 0-3 row). Default page = the one
-        // holding the selected preset.
-        let selectedIx = Math.max(0, presets.presets.findIndex((p) => p.instanceId === presets.selectedInstanceId));
+        // Presets come in pages of four (the pedal's PC 0-3 row); the page is server state
+        // shared with the pedal's UP/DOWN switches.
         let pageCount = Math.max(1, Math.ceil(presets.presets.length / PRESET_SLOTS));
-        let page = this.state.page ?? Math.floor(selectedIx / PRESET_SLOTS);
-        page = Math.min(Math.max(0, page), pageCount - 1);
+        let page = Math.min(Math.max(0, this.state.page), pageCount - 1);
         let bottom: React.ReactNode[] = [];
         for (let i = 0; i < PRESET_SLOTS; ++i) {
             let ix = page * PRESET_SLOTS + i;
