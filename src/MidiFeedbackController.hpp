@@ -127,6 +127,7 @@ namespace pipedal
         std::vector<std::string> connectionIds;
         std::vector<uint16_t> lastRefreshKeys; // (channel<<8)|cc sent in the previous refresh
         std::unordered_map<uint8_t, std::string> lastSentPcLabels;
+        std::string lastBannerSent;
         int64_t lastProgramSent = -1;
         bool started = false;
         bool closed = false;
@@ -156,6 +157,7 @@ namespace pipedal
         std::vector<uint8_t> MakeSetSwitchSysEx(const BypassBinding &binding) const;
         static std::vector<uint8_t> MakeClearAllSysEx();
         static std::vector<uint8_t> MakePcLabelSysEx(uint8_t program, const std::string &name);
+        static std::vector<uint8_t> MakeBannerSysEx(const std::string &name);
         void EnqueuePresetLabels(const PresetIndex &presets); // labels + lit key for the current preset page
 
         void SenderThreadProc(std::stop_token stopToken);

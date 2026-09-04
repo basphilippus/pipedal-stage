@@ -43,6 +43,7 @@ namespace
     constexpr uint8_t SYSEX_CMD_SET_SWITCH = 0x01;
     constexpr uint8_t SYSEX_CMD_CLEAR_ALL = 0x02;
     constexpr uint8_t SYSEX_CMD_SET_PC_LABEL = 0x03;
+    constexpr uint8_t SYSEX_CMD_SET_BANNER = 0x04; // active preset name, independent of the key page
 
     // LED color codes shared with the controller firmware.
     constexpr uint8_t COLOR_WHITE = 0;
@@ -256,6 +257,7 @@ void MidiFeedbackController::Start()
                 OnPedalboardChanged(CLIENT_ID, pedalboard);
                 lastProgramSent = -1; // force PC resend so the preset banner populates
                 lastSentPcLabels.clear(); // device may have rebooted; resend names
+                lastBannerSent = "\x01";  // impossible name: force a banner resend
                 PresetIndex presets;
                 model.GetPresets(&presets);
                 OnPresetsChanged(CLIENT_ID, presets);
@@ -393,6 +395,24 @@ void MidiFeedbackController::EnqueuePresetLabels(const PresetIndex &presets)
         event.d1 = (uint8_t)program;
         Enqueue(std::move(event));
     }
+    // Banner = the preset that is playing, whatever page the keys show.
+    std::string bannerName;
+    for (const auto &entry : entries)
+    {
+        if (entry.instanceId() == presets.selectedInstanceId())
+        {
+            bannerName = entry.name();
+            break;
+        }
+    }
+    if (bannerName != lastBannerSent)
+    {
+        lastBannerSent = bannerName;
+        Event event;
+        event.type = EvType::SendSysEx;
+        event.sysex = MakeBannerSysEx(bannerName);
+        Enqueue(std::move(event));
+    }
 
     for (int64_t i = 0; i < pageSize; ++i)
     {
@@ -409,6 +429,21 @@ void MidiFeedbackController::EnqueuePresetLabels(const PresetIndex &presets)
         event.sysex = MakePcLabelSysEx((uint8_t)i, name);
         Enqueue(std::move(event));
     }
+}
+
+std::vector<uint8_t> MidiFeedbackController::MakeBannerSysEx(const std::string &name)
+{
+    std::string text = SanitizeLabel(name);
+    std::vector<uint8_t> frame;
+    frame.reserve(9 + text.size());
+    frame.insert(frame.end(), {0xF0, SYSEX_MFR_ID, SYSEX_TAG_0, SYSEX_TAG_1, SYSEX_VERSION, SYSEX_CMD_SET_BANNER,
+                               (uint8_t)text.size()});
+    for (char c : text)
+    {
+        frame.push_back((uint8_t)(c & 0x7F));
+    }
+    frame.push_back(0xF7);
+    return frame;
 }
 
 void MidiFeedbackController::OnPresetPageChanged(int64_t page)
