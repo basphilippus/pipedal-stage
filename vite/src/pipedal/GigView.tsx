@@ -18,8 +18,8 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 // Stage theme "Gig View": a full-screen mirror of the MIDI controller for playing.
-// Two rows laid out like the pedal: top = snapshots A-D, bottom = a page of four
-// presets + a pager. A preset with snapshots always has one active (server rule). Tapping a snapshot
+// Two rows laid out like the pedal: top = a page of four presets + a pager, bottom =
+// snapshots A-D. A preset with snapshots always has one active (server rule). Tapping a snapshot
 // or preset tile does what the pedal switch does. The pager pages through the bank
 // four presets at a time (the pedal's UP/DOWN switches still step presets; PiPedal's
 // banks would give pedal parity). Opened by swiping up on the snapshot strip (or its
@@ -171,8 +171,7 @@ export default class GigView extends React.Component<GigViewProps, GigViewState>
                 onTap: s ? () => this.model.selectSnapshot(i) : undefined,
             }));
         }
-        // Fifth column stays empty so the rows line up with the pedal (its UP switch
-        // steps presets; the screen pages via the pager below).
+        // Fifth column stays empty so the rows line up with the pedal's five-switch rows.
         top.push(<div key="spacer" style={{ flex: "1 1 0", minWidth: 0 }} />);
 
         // Presets come in pages of four (the pedal's PC 0-3 row); the page is server state
@@ -208,9 +207,10 @@ export default class GigView extends React.Component<GigViewProps, GigViewState>
                     <span style={{ flex: "1 1 auto" }} />
                     <span style={{ fontFamily: STAGE.displayFont, fontSize: 12, letterSpacing: "0.12em", color: STAGE.textDim }}>SWIPE DOWN TO CLOSE</span>
                 </div>
-                <div style={{ flex: "1 1 0", display: "flex", gap: 14, minHeight: 0 }}>{top}</div>
-                <div style={{ height: 14 }} />
+                {/* Rows mirror the pedal: presets + pager on top, snapshots below. */}
                 <div style={{ flex: "1 1 0", display: "flex", gap: 14, minHeight: 0 }}>{bottom}</div>
+                <div style={{ height: 14 }} />
+                <div style={{ flex: "1 1 0", display: "flex", gap: 14, minHeight: 0 }}>{top}</div>
             </div>
         );
     }
