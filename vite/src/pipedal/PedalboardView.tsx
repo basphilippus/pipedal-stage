@@ -792,7 +792,8 @@ const PedalboardView =
                     this.lastTapId = instanceId;
                     this.lastTapTime = isDouble ? 0 : now;
                     if (!isDouble) return false;
-                    let item = this.state.pedalboard?.getItem(instanceId);
+                    let item: PedalboardItem | undefined | null;
+                    try { item = this.state.pedalboard?.getItem(instanceId); } catch { return false; }
                     if (!item || item.isStart() || item.isEnd() || item.isSplit() || item.isEmpty()) return false;
                     this.model.setPedalboardItemEnabled(instanceId, !item.isEnabled);
                     return true;
@@ -1099,6 +1100,17 @@ const PedalboardView =
                     throw new PiPedalStateError("scroll container not found.");
                 }
 
+                // Block title / plugin name for the Stage glyph picker. getItem() throws for
+                // ids that are not blocks (chain terminals), hence the guard.
+                private itemName(instanceId: number): string | undefined {
+                    try {
+                        let item = this.state.pedalboard?.getItem(instanceId);
+                        return item ? (item.title || item.pluginName) : undefined;
+                    } catch {
+                        return undefined;
+                    }
+                }
+
                 pedalButton(
                     instanceId: number,
                     iconType: PluginType,
@@ -1142,8 +1154,9 @@ const PedalboardView =
                                     <div id="childIcon" style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "center" }} >
                                         <PluginIcon pluginType={iconType}
                                             size={24}
-                                            color={(this.props.theme.stage && !hasBorder) ? "#5a5e66" : (getIconColor(iconColor) ?? (this.props.theme.stage ? "#cfd3d9" : undefined))}
+                                            color={(this.props.theme.stage && !hasBorder) ? "#5a5e66" : getIconColor(iconColor)}
                                             pluginMissing={pluginNotFound}
+                                            hintName={hasBorder ? this.itemName(instanceId) : "__terminal"}
                                         />
                                     </div>
 

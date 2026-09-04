@@ -18,6 +18,7 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import { SyntheticEvent } from 'react';
+import { Save as LucideSave, EllipsisVertical as LucideEllipsisVertical, ChevronDown as LucideChevronDown } from 'lucide-react';
 import ArrowRightIcon from '@mui/icons-material/ArrowRight';
 import IconButtonEx from './IconButtonEx';
 import { PiPedalModel, PiPedalModelFactory, PresetIndex } from './PiPedalModel';
@@ -70,6 +71,11 @@ interface PresetSelectorState {
 
 
 const selectColor = isDarkMode() ? "#888" : "#FFFFFF";
+
+// MUI Select arrow replacement (Stage): keeps MUI's positioning class, draws a thin chevron.
+function StageChevron(props: { className?: string }) {
+    return <LucideChevronDown className={props.className} size={22} strokeWidth={1.75} style={{ color: "#f2f2f2", opacity: 0.8, top: "calc(50% - 11px)" }} />;
+}
 
 const styles = (theme: Theme) => createStyles({
     select: { // fu fu fu.Overrides for white selector on dark background.
@@ -362,7 +368,7 @@ const PresetSelector =
                                     style={{ flex: "0 0 auto", color: "#FFFFFF" }}
                                     onClick={(e) => { this.handleSave(); }}
                                     size="large">
-                                    <SaveIconOutline style={{ opacity: 0.75 }} color="inherit" />
+                                    {isStageTheme() ? <LucideSave size={22} strokeWidth={1.75} style={{ opacity: 0.85 }} /> : <SaveIconOutline style={{ opacity: 0.75 }} color="inherit" />}
                                 </IconButtonEx>
                             </div>
                         )}
@@ -370,6 +376,7 @@ const PresetSelector =
                         <div style={{ flex: "1 1 auto", minWidth: 60, maxWidth: 300, position: "relative", paddingRight: 12 }} >
                             <Select variant="standard"
                                 className={classes.select}
+                                IconComponent={isStageTheme() ? StageChevron : undefined}
                                 style={{ width: "100%", position: "relative", top: 0, color: "#FFFFFF" }} disabled={!this.state.enabled}
                                 onChange={(e, extra) => this.handleChange(e, extra)}
                                 onClose={(e) => this.handleSelectClose(e)}
@@ -404,7 +411,7 @@ const PresetSelector =
                                 onClick={(e) => this.handlePresetsMenuClick(e)}
                                 size="large"
                             >
-                                <MoreVertIcon style={{ opacity: 0.75 }} color="inherit" />
+                                {isStageTheme() ? <LucideEllipsisVertical size={22} strokeWidth={1.75} style={{ opacity: 0.85 }} /> : <MoreVertIcon style={{ opacity: 0.75 }} color="inherit" />}
                             </IconButtonEx>
                             <Menu
                                 id="edit-presets-menu"

@@ -18,6 +18,7 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import { SyntheticEvent } from 'react';
+import { Plus as LucidePlus, Trash as LucideTrash, FolderOpen as LucideFolderOpen, Cable as LucideCable } from 'lucide-react';
 import { Theme } from '@mui/material/styles';
 import WithStyles, { withTheme } from './WithStyles';
 import { withStyles } from "tss-react/mui";
@@ -519,6 +520,7 @@ export const MainPage =
                                                             pluginType={uiPlugin.plugin_type}
                                                             color={getIconColor(pedalboardItem?.iconColor ?? "")}
                                                             size={24}
+                                                            hintName={pedalboardItem?.title || uiPlugin.name}
                                                         />
                                                     </div>
                                                 )}
@@ -540,6 +542,7 @@ export const MainPage =
                                                             pluginType={uiPlugin.plugin_type}
                                                             color={getIconColor(pedalboardItem?.iconColor ?? "")}
                                                             size={24}
+                                                            hintName={pedalboardItem?.title || uiPlugin.name}
                                                         />
                                                     </div>
                                                 )}
@@ -717,7 +720,8 @@ export const MainPage =
 
                                             <div style={{ flex: "0 0 auto", display: (canInsert || canAppend) ? "block" : "none" }}>
                                                 <IconButtonEx tooltip="Add pedal slot" onClick={(e) => { this.onAddClick(e) }} size="large">
-                                                    <AddIcon style={{ height: 24, width: 24, fill: this.props.theme.palette.text.primary, opacity: 0.6 }} />
+                                                    {isStageTheme() ? <LucidePlus size={22} strokeWidth={1.75} style={{ color: this.props.theme.palette.text.primary, opacity: 0.8 }} />
+                                                        : <AddIcon style={{ height: 24, width: 24, fill: this.props.theme.palette.text.primary, opacity: 0.6 }} />}
                                                 </IconButtonEx>
                                                 <Menu
                                                     id="add-menu"
@@ -738,7 +742,8 @@ export const MainPage =
                                                 <IconButtonEx tooltip="Delete pedal"
                                                     onClick={() => { this.onDeletePedal(pedalboardItem?.instanceId ?? -1) }}
                                                     size="large">
-                                                    <OldDeleteIcon style={{ height: 24, width: 24, fill: this.props.theme.palette.text.primary, opacity: 0.6 }} />
+                                                    {isStageTheme() ? <LucideTrash size={22} strokeWidth={1.75} style={{ color: this.props.theme.palette.text.primary, opacity: 0.8 }} />
+                                                        : <OldDeleteIcon style={{ height: 24, width: 24, fill: this.props.theme.palette.text.primary, opacity: 0.6 }} />}
                                                 </IconButtonEx>
                                             </div>
                                             <div style={{ flex: "0 0 auto" }}>
@@ -749,7 +754,7 @@ export const MainPage =
                                                     tooltip="Load plugin"
                                                     onClick={this.onLoadClick}
                                                     disabled={this.state.selectedPedal === -1 || (!canLoad) || (this.getSelectedPedalboardItem()?.isSplit() ?? true)}
-                                                    startIcon={<InputIcon />}
+                                                    startIcon={isStageTheme() ? <LucideFolderOpen size={20} strokeWidth={1.75} /> : <InputIcon />}
                                                     style={{
                                                         textTransform: "none",
                                                         background: (isStageTheme() ? undefined : isDarkMode() ? "#6750A4" : undefined)
@@ -762,7 +767,8 @@ export const MainPage =
                                                 <IconButtonEx tooltip="MIDI bindings"
                                                     onClick={(e) => { this.handleMidiConfiguration(instanceId); }}
                                                     size="large">
-                                                    <MidiIcon style={{ height: 24, width: 24, fill: this.props.theme.palette.text.primary, opacity: 0.6 }} />
+                                                    {isStageTheme() ? <LucideCable size={22} strokeWidth={1.75} style={{ color: this.props.theme.palette.text.primary, opacity: 0.8 }} />
+                                                        : <MidiIcon style={{ height: 24, width: 24, fill: this.props.theme.palette.text.primary, opacity: 0.6 }} />}
                                                 </IconButtonEx>
                                             </div>
                                             <div style={{ flex: "0 0 auto" }}>
@@ -786,7 +792,10 @@ export const MainPage =
                                 )
                             }
                             <div id="mainPageControls" className={horizontalScrollLayout ? classes.controlContentSmall : classes.controlContent}
-                                style={{ zoom: (this.props.theme.stage && !horizontalScrollLayout) ? STAGE_CONTROL_ZOOM : undefined }}>
+                                style={{ zoom: (this.props.theme.stage && !horizontalScrollLayout) ? STAGE_CONTROL_ZOOM : undefined }}
+                                // Stage: re-keyed per block so the panel fades in on block change (see App.tsx @keyframes stageFadeIn).
+                                key={this.props.theme.stage ? "controls-" + this.state.selectedPedal : "controls"}
+                                data-stage-fade={this.props.theme.stage ? "1" : undefined}>
                                 {
                                     missing ? (
                                         <div style={{ marginLeft: 40, marginTop: 20 }}>

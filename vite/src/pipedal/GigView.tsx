@@ -157,7 +157,6 @@ export default class GigView extends React.Component<GigViewProps, GigViewState>
     }
 
     render() {
-        if (!this.props.open) return null;
         let presets = this.state.presets;
         let pb = this.props.pedalboard;
         let current = presets.presets.find((p) => p.instanceId === presets.selectedInstanceId);
@@ -190,12 +189,17 @@ export default class GigView extends React.Component<GigViewProps, GigViewState>
         bottom.push(this.pagerTile(page, pageCount, presets.presets.length));
 
         return (
-            <div className="gig-view"
+            <div className="gig-view" data-open={this.props.open ? "true" : "false"} aria-hidden={!this.props.open}
                 onPointerDown={(e) => this.onPointerDown(e)} onPointerUp={(e) => this.onPointerUp(e)}
                 style={{
                     position: "fixed", left: 0, top: 0, right: 0, bottom: 0, zIndex: 1250, background: STAGE.bg,
                     display: "flex", flexDirection: "column", padding: "10px 16px 14px 16px", boxSizing: "border-box",
                     touchAction: "none", userSelect: "none",
+                    // Slides up from the strip; slides back down on close. Stays mounted for the animation.
+                    transform: this.props.open ? "translateY(0)" : "translateY(100%)",
+                    transition: "transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+                    pointerEvents: this.props.open ? "auto" : "none",
+                    boxShadow: this.props.open ? "0 -8px 30px rgba(0,0,0,0.6)" : "none",
                 }}>
                 <div onClick={() => { if (this.tapAllowed()) this.props.onClose(); }} style={{ display: "flex", alignItems: "baseline", gap: 16, padding: "4px 6px 12px 6px", cursor: "pointer" }}>
                     <span style={{ fontFamily: STAGE.displayFont, fontSize: 34, letterSpacing: "0.01em", color: STAGE.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>

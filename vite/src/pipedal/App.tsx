@@ -105,6 +105,8 @@ function stageThemeOptions(): Parameters<typeof createTheme>[0] {
                     // Name + Save stay visible above the keys.
                     'body.osk-visible .snapshot-sheet .MuiDialog-container': { alignItems: 'flex-start', paddingTop: 6 },
                     'body.osk-visible .snapshot-sheet .snapshot-sheet-extra': { display: 'none !important' }, // beats the inline display:flex
+                    '@keyframes stageFadeIn': { from: { opacity: 0, transform: 'translateY(6px)' }, to: { opacity: 1, transform: 'none' } },
+                    '[data-stage-fade]': { animation: 'stageFadeIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1)' },
                     '#mainPageControls *, #pedalboardScroll': { scrollbarWidth: 'none' },
                 },
             },

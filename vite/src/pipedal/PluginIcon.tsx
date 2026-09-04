@@ -19,6 +19,7 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import { Theme } from '@mui/material/styles';
+import StagePluginIcon from './StagePluginIcon';
 import WithStyles from './WithStyles';
 import {createStyles} from './WithStyles';
 
@@ -66,7 +67,7 @@ import FxEmptyIcon from './svg/fx_empty.svg?react';
 
 import FxTerminalIcon from './svg/fx_terminal.svg?react';
 
-import { isDarkMode } from './DarkMode';
+import { isDarkMode, isStageTheme } from './DarkMode';
 import { PiPedalModel } from './PiPedalModel';
 
 export interface IconColorSelect {
@@ -188,6 +189,7 @@ export interface PluginIconProps extends WithStyles<typeof styles> {
     offsetY?: number;
     pluginType: PluginType;
     pluginMissing?: boolean;
+    hintName?: string;   // plugin/block name; Stage picks tuner/looper/cab glyphs by name
 }
 
 export function SelectSvgIcon(plugin_type: PluginType, className: string, size: number = 24, opacity: number = 1.0, missingPlugin: boolean = false, color = "") {
@@ -375,6 +377,13 @@ const PluginIcon = withStyles((props: PluginIconProps) => {
 
     let size: number = 24;
     if (props.size) size = props.size;
+    if (isStageTheme()) {
+        // Stage theme: line glyph in the category colour (or the block's chosen colour).
+        return (
+            <StagePluginIcon pluginType={pluginMissing_ ? PluginType.ErrorPlugin : pluginType} size={size}
+                color={pluginMissing_ ? "#ff4d4d" : (color || undefined)} opacity={opacity ?? 1} hintName={props.hintName} />
+        );
+    }
     let topVal: number = (props.offsetY ?? 0);
 
     let svgIcon = SelectSvgIcon(pluginType, classes.icon, size, opacity, pluginMissing_,color? color: "" );

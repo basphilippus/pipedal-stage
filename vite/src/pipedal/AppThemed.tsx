@@ -19,6 +19,7 @@
 
 
 import './AppThemed.css';
+import { Menu as LucideMenu } from 'lucide-react';
 import OnScreenKeyboard, { onScreenKeyboardEnabled } from './OnScreenKeyboard';
 
 //import {alpha} from '@mui/material/styles';
@@ -822,7 +823,7 @@ export
                                             color="inherit"
                                             onClick={() => { this.showDrawer() }}
                                             size="large">
-                                            <MenuButton style={{ opacity: 0.75 }} />
+                                            {isStageTheme() ? <LucideMenu size={24} strokeWidth={1.75} style={{ opacity: 0.85 }} /> : <MenuButton style={{ opacity: 0.75 }} />}
                                         </IconButtonEx>
                                         <div style={{ flex: "0 1 400px", minWidth: 100 }}>
                                             <PresetSelector />
