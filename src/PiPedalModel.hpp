@@ -441,6 +441,7 @@ namespace pipedal
 
         std::vector<AlsaSequencerPortSelection> GetAlsaSequencerPorts();
 
+        void SelectDefaultSnapshot();
         void SetShowStatusMonitor(bool show);
         bool GetShowStatusMonitor();
 

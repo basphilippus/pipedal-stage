@@ -1370,6 +1370,37 @@ void PiPedalModel::OnNotifyMidiProgramChange(RealtimeMidiProgramRequest &midiPro
     }
 }
 
+// Like every scene-based unit (Quad Cortex, Helix, Fractal): when a preset has
+// snapshots, one is always active. A preset saved with no selection lands on its
+// first snapshot. Presets without snapshots are untouched. Call before firing the
+// pedalboard so clients and the audio thread receive the snapshot's values.
+void PiPedalModel::SelectDefaultSnapshot()
+{
+    if (this->pedalboard.selectedSnapshot() != -1)
+    {
+        return;
+    }
+    auto &snapshots = this->pedalboard.snapshots();
+    for (size_t i = 0; i < snapshots.size(); ++i)
+    {
+        if (snapshots[i])
+        {
+            if (this->pedalboard.ApplySnapshot((int64_t)i, pluginHost))
+            {
+                this->pedalboard.selectedSnapshot((int64_t)i);
+                for (auto &snapshot : snapshots)
+                {
+                    if (snapshot)
+                    {
+                        snapshot->isModified_ = false;
+                    }
+                }
+            }
+            return;
+        }
+    }
+}
+
 void PiPedalModel::LoadPreset(int64_t clientId, int64_t instanceId)
 {
     std::lock_guard<std::recursive_mutex> guard{mutex};
@@ -1378,6 +1409,7 @@ void PiPedalModel::LoadPreset(int64_t clientId, int64_t instanceId)
     {
         this->pedalboard = storage.GetCurrentPreset();
         UpdateDefaults(&this->pedalboard);
+        SelectDefaultSnapshot();
 
         this->hasPresetChanged = false; // no fire.
         this->FirePedalboardChanged(clientId);
@@ -2191,6 +2223,7 @@ void PiPedalModel::OpenBank(int64_t clientId, int64_t bankId)
     this->pedalboard = storage.GetCurrentPreset();
 
     UpdateDefaults(&this->pedalboard);
+    SelectDefaultSnapshot();
     this->hasPresetChanged = false;
     this->FirePedalboardChanged(clientId);
 }

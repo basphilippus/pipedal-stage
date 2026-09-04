@@ -18,8 +18,8 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 // Stage theme "Gig View": a full-screen mirror of the MIDI controller for playing.
-// Two rows laid out like the pedal: top = snapshots A-D + "Preset" (the preset as
-// saved, no snapshot), bottom = a page of four presets + a pager. Tapping a snapshot
+// Two rows laid out like the pedal: top = snapshots A-D, bottom = a page of four
+// presets + a pager. A preset with snapshots always has one active (server rule). Tapping a snapshot
 // or preset tile does what the pedal switch does. The pager pages through the bank
 // four presets at a time (the pedal's UP/DOWN switches still step presets; PiPedal's
 // banks would give pedal parity). Opened by swiping up on the snapshot strip (or its
@@ -59,15 +59,6 @@ export default class GigView extends React.Component<GigViewProps, GigViewState>
     }
     private onPresetsChanged(value: PresetIndex) { this.setState({ presets: value, page: null }); }
 
-    // Back to the preset as saved, with no snapshot selected. Reload discards unsaved
-    // preset edits (the strip's EDITED marker warns about snapshot drift beforehand).
-    private recallBase() {
-        let presets = this.state.presets;
-        if (presets.selectedInstanceId !== 0) {
-            this.model.loadPreset(presets.selectedInstanceId);
-        }
-        this.model.selectSnapshot(-1);
-    }
     componentDidMount() { this.model.presets.addOnChangedHandler(this.onPresetsChanged); }
     componentWillUnmount() { this.model.presets.removeOnChangedHandler(this.onPresetsChanged); }
 
@@ -172,11 +163,9 @@ export default class GigView extends React.Component<GigViewProps, GigViewState>
                 onTap: s ? () => this.model.selectSnapshot(i) : undefined,
             }));
         }
-        let noSnapshot = this.props.selectedSnapshot < 0 || !activeSnapshot;
-        top.push(this.tile("PRESET", {
-            label: "As saved", sub: "no snapshot", color: PRESET_COLOR, active: noSnapshot,
-            onTap: () => this.recallBase(),
-        }));
+        // Fifth column stays empty so the rows line up with the pedal (its UP switch
+        // steps presets; the screen pages via the pager below).
+        top.push(<div key="spacer" style={{ flex: "1 1 0", minWidth: 0 }} />);
 
         // Presets come in pages of four (the pedal's PC 0-3 row). Default page = the one
         // holding the selected preset.
