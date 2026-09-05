@@ -3694,7 +3694,19 @@ export class PiPedalModel //implements PiPedalModel
     }
 
 
+    // The kiosk must stay on the localhost origin: theme/keyboard state live in that
+    // origin's localStorage and Stage/OSK are keyed on it. Any reload or reconnect
+    // navigation goes back to the kiosk URL.
+    static readonly KIOSK_URL = "http://localhost/?vkb=1";
+    private kioskUrlOr(url: string): string {
+        return onScreenKeyboardEnabled() ? PiPedalModel.KIOSK_URL : url;
+    }
+
     reloadPage() {
+        if (onScreenKeyboardEnabled()) {
+            window.location.replace(PiPedalModel.KIOSK_URL);
+            return;
+        }
         // eslint-disable-next-line no-restricted-globals
         let url = window.location.href.split('#')[0];
         window.location.href = url;
@@ -3750,7 +3762,7 @@ export class PiPedalModel //implements PiPedalModel
                     this.startHotspotReconnectTimer();
                 } else {
                     this.cancelOnNetworkChanging();
-                    window.location.replace(newUrl);
+                    window.location.replace(this.kioskUrlOr(newUrl)); // kiosk: never leave localhost
                 }
             },
             5 * 1000);
