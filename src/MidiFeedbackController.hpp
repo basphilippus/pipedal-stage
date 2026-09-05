@@ -149,6 +149,7 @@ namespace pipedal
         void RebuildSnapshotSwitches(const std::vector<MidiBinding> &systemBindings);
         bool IsSnapshotSwitch(int channel, int cc) const;
         void EnqueueSnapshotStates(int64_t selectedSnapshot);
+        bool TunerMuted();
         static uint8_t ColorForColorKey(const std::string &key);
         void EnqueueFullRefresh();
         void EnqueueBindingState(const BypassBinding &binding, bool enabled);

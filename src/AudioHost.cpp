@@ -522,6 +522,7 @@ private:
     SystemMidiBinding stopHotspotMidiBinding;
     SystemMidiBinding rebootMidiBinding;
     SystemMidiBinding shutdownMidiBinding;
+    SystemMidiBinding tunerMidiBinding;
 
     ChannelSelection channelSelection;
     std::atomic<bool> active = false;
@@ -1041,6 +1042,10 @@ private:
         if (startHotspotMidiBinding.IsTriggered(event))
         {
             this->realtimeWriter.OnRealtimeMidiEvent(RealtimeMidiEventType::StartHotspot);
+        }
+        if (tunerMidiBinding.IsTriggered(event))
+        {
+            this->realtimeWriter.OnRealtimeMidiEvent(RealtimeMidiEventType::TunerToggle);
         }
         if (stopHotspotMidiBinding.IsTriggered(event))
         {
@@ -2410,6 +2415,10 @@ void AudioHostImpl::SetSystemMidiBindings(const std::vector<MidiBinding> &bindin
         else if (i->symbol() == "stopHotspot")
         {
             this->stopHotspotMidiBinding.SetBinding(*i);
+        }
+        else if (i->symbol() == "tuner")
+        {
+            this->tunerMidiBinding.SetBinding(*i);
         }
         else if (i->symbol() == "reboot")
         {

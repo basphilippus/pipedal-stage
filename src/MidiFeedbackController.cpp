@@ -395,7 +395,8 @@ void MidiFeedbackController::EnqueuePresetLabels(const PresetIndex &presets)
         event.d1 = (uint8_t)program;
         Enqueue(std::move(event));
     }
-    // Banner = the preset that is playing, whatever page the keys show.
+    // Banner = the preset that is playing, whatever page the keys show; "TUNER" while
+    // the tuner block is muted (tuner mode).
     std::string bannerName;
     for (const auto &entry : entries)
     {
@@ -404,6 +405,10 @@ void MidiFeedbackController::EnqueuePresetLabels(const PresetIndex &presets)
             bannerName = entry.name();
             break;
         }
+    }
+    if (TunerMuted())
+    {
+        bannerName = "TUNER";
     }
     if (bannerName != lastBannerSent)
     {
@@ -444,6 +449,20 @@ std::vector<uint8_t> MidiFeedbackController::MakeBannerSysEx(const std::string &
     }
     frame.push_back(0xF7);
     return frame;
+}
+
+bool MidiFeedbackController::TunerMuted()
+{
+    Pedalboard board = model.GetCurrentPedalboardCopy();
+    for (PedalboardItem *item : board.GetAllPlugins())
+    {
+        if (item->uri() == "http://two-play.com/plugins/toob-tuner")
+        {
+            const ControlValue *v = item->GetControlValue("MUTE");
+            return v != nullptr && v->value() >= 0.5f;
+        }
+    }
+    return false;
 }
 
 void MidiFeedbackController::OnPresetPageChanged(int64_t page)
@@ -676,6 +695,13 @@ void MidiFeedbackController::OnItemEnabledChanged(int64_t clientId, int64_t peda
 
 void MidiFeedbackController::OnControlChanged(int64_t clientId, int64_t pedalItemId, const std::string &symbol, float value)
 {
+    if (symbol == "MUTE")
+    {
+        // tuner mode banner follows the tuner's Mute (any MUTE change is cheap to check)
+        PresetIndex presets;
+        model.GetPresets(&presets);
+        EnqueuePresetLabels(presets);
+    }
     for (const BypassBinding &binding : bindings)
     {
         if (binding.instanceId == pedalItemId && binding.symbol == symbol)

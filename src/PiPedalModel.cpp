@@ -3459,12 +3459,43 @@ void PiPedalModel::OnNetworkChanged(bool ethernetConnected, bool hotspotConnecte
     FireNetworkChanged();
 }
 
+// Rig: the "tuner" system binding. Toggles the MUTE control of the (first) TooB Tuner
+// in the current preset; the kiosk shows a full-screen tuner while it is muted.
+void PiPedalModel::ToggleTunerMute()
+{
+    int64_t instanceId = -1;
+    float current = 0;
+    {
+        std::lock_guard<std::recursive_mutex> guard{mutex};
+        Pedalboard board = this->pedalboard;
+        for (PedalboardItem *item : board.GetAllPlugins())
+        {
+            if (item->uri() == "http://two-play.com/plugins/toob-tuner")
+            {
+                instanceId = item->instanceId();
+                const ControlValue *v = item->GetControlValue("MUTE");
+                current = v ? v->value() : 0;
+                break;
+            }
+        }
+    }
+    if (instanceId != -1)
+    {
+        SetControl(-1, instanceId, "MUTE", current >= 0.5f ? 0.0f : 1.0f);
+    }
+}
+
 void PiPedalModel::OnNotifyMidiRealtimeEvent(RealtimeMidiEventType eventType)
 {
     try
     {
         switch (eventType)
         {
+        case RealtimeMidiEventType::TunerToggle:
+        {
+            ToggleTunerMute();
+        }
+        break;
         case RealtimeMidiEventType::Shutdown:
         {
             this->RequestShutdown(false);

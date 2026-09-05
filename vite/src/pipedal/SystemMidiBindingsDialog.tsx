@@ -172,6 +172,8 @@ export const SystemMidiBindingDialog =
                         displayName = "Shutdown";
                     } else if (item.symbol === "reboot") {
                         displayName = "Reboot";
+                    } else if (item.symbol === "tuner") {
+                        displayName = "Tuner mode (toggle tuner mute)";
                     } else {
                         found = false;
                     }

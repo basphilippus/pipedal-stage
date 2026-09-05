@@ -452,6 +452,7 @@ namespace pipedal
         std::vector<AlsaSequencerPortSelection> GetAlsaSequencerPorts();
 
         void SelectDefaultSnapshot();
+        void ToggleTunerMute();
         int64_t presetPage_ = 0;
         int64_t PageOfPreset(int64_t instanceId);
         int64_t PresetPageCount();

@@ -2234,6 +2234,10 @@ std::vector<MidiBinding> Storage::GetSystemMidiBindings()
                     ++position;
                 }
             }
+            if (!hasBinding(result, "tuner"))
+            {
+                result.push_back(MidiBinding::SystemBinding("tuner"));
+            }
             return result;
         }
         catch (const std::exception& e)
@@ -2256,6 +2260,7 @@ std::vector<MidiBinding> Storage::GetSystemMidiBindings()
 
     result.push_back(MidiBinding::SystemBinding("prevSnapshot"));
     result.push_back(MidiBinding::SystemBinding("nextSnapshot"));
+    result.push_back(MidiBinding::SystemBinding("tuner"));
 
     result.push_back(MidiBinding::SystemBinding("stopHotspot"));
     result.push_back(MidiBinding::SystemBinding("startHotspot"));

@@ -49,7 +49,7 @@ interface GxTunerState {
 
 }
 
-const GxTunerView =
+export const GxTunerView =
     withStyles(
         class extends React.Component<GxTunerProps, GxTunerState> 
         implements ControlViewCustomization

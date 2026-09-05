@@ -32,6 +32,7 @@ namespace pipedal {
         Snapshot4,
         Snapshot5,
         Snapshot6,
+        TunerToggle, // rig: system binding "tuner" toggles the tuner block's Mute
 
     };
 
