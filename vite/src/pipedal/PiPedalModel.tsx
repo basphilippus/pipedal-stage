@@ -18,6 +18,7 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import { UiPlugin, UiControl, PluginType, UiFileProperty } from './Lv2Plugin';
+import { onScreenKeyboardEnabled } from './OnScreenKeyboard';
 
 import { PiPedalArgumentError, PiPedalStateError } from './PiPedalError';
 import { UpdateStatus, UpdatePolicyT } from './Updater';
@@ -1193,6 +1194,27 @@ export class PiPedalModel //implements PiPedalModel
     setError(message: string): void {
         this.errorMessage.set(message);
         this.setState(State.Error);
+        if (message !== "") {
+            this.startKioskRecovery(); // setError("") is used to clear errors: not a lost connection
+        }
+    }
+
+    // Kiosk (localhost / ?vkb=1): nobody is there to tap RELOAD after the socket's
+    // retries give up (e.g. pipedald restarted a few times in a row). Poll the server
+    // and reload the page as soon as it answers.
+    private kioskRecoveryTimer?: number;
+    private startKioskRecovery(): void {
+        if (!onScreenKeyboardEnabled() || this.kioskRecoveryTimer !== undefined) return;
+        this.kioskRecoveryTimer = window.setInterval(async () => {
+            try {
+                let r = await fetch("/", { cache: "no-store" });
+                if (r.ok) {
+                    window.clearInterval(this.kioskRecoveryTimer);
+                    this.kioskRecoveryTimer = undefined;
+                    this.reloadPage();
+                }
+            } catch { /* server still down; keep polling */ }
+        }, 3000);
     }
     varRequest(url: string): string {
         return "var/" + url;
@@ -1201,6 +1223,10 @@ export class PiPedalModel //implements PiPedalModel
     private setState(state: State) {
         if (this.state.get() !== state) {
             this.state.set(state);
+            if (state === State.Ready && this.kioskRecoveryTimer !== undefined) {
+                window.clearInterval(this.kioskRecoveryTimer); // connection came back on its own
+                this.kioskRecoveryTimer = undefined;
+            }
             if (state === State.Error) {
                 this.closeTone3000DownloadPopup();
             }
