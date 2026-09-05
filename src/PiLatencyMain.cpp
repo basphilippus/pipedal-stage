@@ -49,6 +49,7 @@ struct TestResult
     int error = 0;
     uint64_t latency = 0;
     float cpuOverhead = 0;
+    float peak = 0; // diagnostic: largest |input| seen while waiting for the loop signal
 };
 void PrintHelp()
 {
@@ -244,6 +245,7 @@ public:
                 return result;
             }
             result.latency = latencyMonitor.GetLatency();
+            result.peak = latencyMonitor.peakSeen;
             if (result.latency == NO_SIGNAL_VALUE)
             {
                 result.error = E_NOSIGNAL;
@@ -301,6 +303,7 @@ public:
         std::mutex sync;
 
     public:
+        float peakSeen = 0; // diagnostic
         void Init(uint64_t sampleRate)
         {
             idle_samples = (uint64_t)(sampleRate * 0.5);
@@ -336,6 +339,7 @@ public:
             break;
             case State::Waiting:
             {
+                if (std::abs(input) > peakSeen) peakSeen = std::abs(input);
                 if (std::abs(input) > 0.1 || current_latency >= 2000)
                 {
                     {
@@ -518,7 +522,11 @@ void RunLatencyTest(
             switch (result.error)
             {
             case E_NOSIGNAL:
-                pp << "No signal";
+                {
+                    char buf[48];
+                    snprintf(buf, sizeof(buf), "No signal(pk %.4f)", result.peak);
+                    pp << buf;
+                }
                 break;
             case E_OPEN_FAILURE:
                 pp << "Failed";
