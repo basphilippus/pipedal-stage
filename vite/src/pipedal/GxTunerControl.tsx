@@ -18,6 +18,8 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import React, {Component} from 'react';
+import { isStageTheme } from './DarkMode';
+import { STAGE } from './StageTheme';
 import { Theme } from '@mui/material/styles';
 import WithStyles from './WithStyles';
 import {createStyles} from './WithStyles';
@@ -317,7 +319,7 @@ const GxTunerControl =
                 let r0 = TICK_OUTER_RADIUS;
                 let r1 = (isZeroTick? TICK_INNER_ZERO_RADIUS: TICK_INNER_RADIUS);
                 let width = isZeroTick? 3: 2;
-                return this.makeTick(pitchInfo,cents,r0,r1,"#666", width);
+                return this.makeTick(pitchInfo,cents,r0,r1, isStageTheme() ? (isZeroTick ? STAGE.text : "#5a5e66") : "#666", width);
             }
 
             nextKey() { return "key" + (this.keyCounter++)}
@@ -380,7 +382,9 @@ const GxTunerControl =
                     this.lastValidCents = cents;
                     this.lastValidTime = new Date().getTime();
                 }
-                return this.makeTick(pitchInfo,cents,NEEDLE_OUTER_RADIUS,0.1,"#800",3);
+                // Stage: amber needle, green when within 3 cents of the note.
+                let needleColor = isStageTheme() ? ((pitchInfo.valid && Math.abs(cents) < 3) ? "#3ddc84" : STAGE.accent) : "#800";
+                return this.makeTick(pitchInfo,cents,NEEDLE_OUTER_RADIUS,0.1,needleColor,3);
             }
             
             renderDial(pitchInfo: PitchInfo) 
@@ -412,14 +416,15 @@ const GxTunerControl =
 
             render() {
                 this.keyCounter = 0;
-                let textColor = isDarkMode() ? "#999": "#444";
-                return (<div ref={this.refRoot} style={{width: DIAL_WIDTH, height: DIAL_HEIGHT, fontSize: "2em", fontWeight: 700, position: "relative",
-                    boxShadow: isDarkMode() ? 
+                let stage = isStageTheme();
+                let textColor = stage ? STAGE.text : (isDarkMode() ? "#999": "#444");
+                return (<div ref={this.refRoot} style={{width: DIAL_WIDTH, height: DIAL_HEIGHT, fontSize: "2em", fontWeight: stage ? 400 : 700, position: "relative",
+                    boxShadow: stage ? `${STAGE.innerHighlight}, ${STAGE.shadow}` : (isDarkMode() ?
                         "5px 5px 6px rgba(0,0,0,0.8) inset":
-                        "1px 5px 6px #888 inset",
-                    background: isDarkMode()? "rgba(255,255,255,0.07)" : "",
-                
-                     fontFamily: "arial,roboto,helvetica,sans"}}>
+                        "1px 5px 6px #888 inset"),
+                    background: stage ? STAGE.panelGradient : (isDarkMode()? "rgba(255,255,255,0.07)" : ""),
+                    border: stage ? `1px solid ${STAGE.border}` : undefined, borderRadius: stage ? 10 : 0,
+                     fontFamily: stage ? STAGE.displayFont : "arial,roboto,helvetica,sans"}}>
                          <div style={{position: "absolute", left: 0, bottom: 5, width: "50%",textAlign: "right"}}>
                              <span style={{ marginRight: 20, color: textColor, textAlign: "right" }}>{this.state.pitchInfo.name}</span>
                          </div>

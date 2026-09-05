@@ -18,6 +18,8 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import React, { Component } from 'react';
+import { isStageTheme } from './DarkMode';
+import { STAGE } from './StageTheme';
 import { Theme } from '@mui/material/styles';
 import WithStyles, {withTheme} from './WithStyles';
 import { withStyles } from "tss-react/mui";
@@ -103,10 +105,12 @@ const styles = (theme: Theme) => ({
     frame: css({
         position: "relative",
         width: CHANNEL_WIDTH + 2*BORDER_THICKNESS,
-        borderTop: BORDER_THICKNESS + "px black solid",
-        borderBottom: BORDER_THICKNESS + "px black solid",
+        borderTop: BORDER_THICKNESS + "px " + (theme.stage ? STAGE.border : "black") + " solid",
+        borderBottom: BORDER_THICKNESS + "px " + (theme.stage ? STAGE.border : "black") + " solid",
         height: DISPLAY_HEIGHT,
-        background: "black",
+        background: theme.stage ? "#050608" : "black",
+        boxShadow: theme.stage ? `0 0 0 1px ${STAGE.border}` : undefined,
+        borderRadius: theme.stage ? 3 : 0,
         overflow: "hidden",
         marginLeft: (CHANNEL_WIDTH+BORDER_THICKNESS)/2,
         marginRight: (CHANNEL_WIDTH+BORDER_THICKNESS)/2
@@ -114,10 +118,12 @@ const styles = (theme: Theme) => ({
     frameStereo: css({
         position: "relative",
         width: 2*CHANNEL_WIDTH + 3*BORDER_THICKNESS,
-        borderTop: BORDER_THICKNESS + "px black solid",
-        borderBottom: BORDER_THICKNESS + "px black solid",
+        borderTop: BORDER_THICKNESS + "px " + (theme.stage ? STAGE.border : "black") + " solid",
+        borderBottom: BORDER_THICKNESS + "px " + (theme.stage ? STAGE.border : "black") + " solid",
         height: DISPLAY_HEIGHT,
-        background: "black",
+        background: theme.stage ? "#050608" : "black",
+        boxShadow: theme.stage ? `0 0 0 1px ${STAGE.border}` : undefined,
+        borderRadius: theme.stage ? 3 : 0,
         overflow: "hidden",
     }),
     monoTextFrame: css({
@@ -160,7 +166,7 @@ const styles = (theme: Theme) => ({
         width: CHANNEL_WIDTH,
         height: VU_BAR_HEIGHT,
         position: "absolute",
-        background: "#CC0",
+        background: theme.stage ? STAGE.accent : "#CC0",
         transform: "translateY(" + VU_BAR_HEIGHT + "px)"
     }),
     greenBar: css({
@@ -169,7 +175,7 @@ const styles = (theme: Theme) => ({
         width: CHANNEL_WIDTH,
         height: VU_BAR_HEIGHT,
         position: "absolute",
-        background: "#0C2",
+        background: theme.stage ? "#3ddc84" : "#0C2",
         transform: "translateY(" + VU_BAR_HEIGHT + "px)"
     }),
     redBar: css({
@@ -178,8 +184,13 @@ const styles = (theme: Theme) => ({
         width: CHANNEL_WIDTH,
         height: VU_BAR_HEIGHT,
         position: "absolute",
-        background: "#F00",
+        background: theme.stage ? "#ff4d4d" : "#F00",
         transform: "translateY(" + VU_BAR_HEIGHT + "px)"    
+    }),
+    // Stage: LED segmentation drawn over the bars (dark hairlines every 4 px).
+    segments: css({
+        position: "absolute", left: 0, top: 0, width: CHANNEL_WIDTH, height: VU_BAR_HEIGHT, pointerEvents: "none",
+        background: theme.stage ? `repeating-linear-gradient(to top, transparent 0px, transparent 3px, ${STAGE.bg} 3px, ${STAGE.bg} 4px)` : "none",
     }),
     indicatorBar: css({
         position: "absolute",
@@ -402,12 +413,13 @@ export const VuMeter =
                 let dbTelltale = telltaleState.getTelltaleHoldValue(db);
                 let yTelltale = dbToY(dbTelltale);
 
+                let stage = isStageTheme();
                 if (yTelltale < this.yZero) {
-                    vuData.telltaleDiv.style.background = "#F00";
+                    vuData.telltaleDiv.style.background = stage ? "#ff4d4d" : "#F00";
                 } else if (yTelltale < this.yYellow) {
-                    vuData.telltaleDiv.style.background = "#CC0";
+                    vuData.telltaleDiv.style.background = stage ? STAGE.accent : "#CC0";
                 } else {
-                    vuData.telltaleDiv.style.background = "#0F2";
+                    vuData.telltaleDiv.style.background = stage ? "#3ddc84" : "#0F2";
                 }
                 if (yTelltale > INTERIOR_DISPLAY_HEIGHT - TELLTALE_HEIGHT) {
                     // non-zero and zero are different displays.
@@ -509,6 +521,7 @@ export const VuMeter =
                             <div className={classes.yellowBar} />
                             <div className={classes.greenBar} />
                             <div className={classes.indicatorBar} />
+                            <div className={classes.segments} />
                         </div>
                     </div>);
                 } else {
@@ -519,12 +532,14 @@ export const VuMeter =
                             <div className={classes.yellowBar} />
                             <div className={classes.greenBar} />
                             <div className={classes.indicatorBar} />
+                            <div className={classes.segments} />
                         </div>
                         <div className={classes.frameR}>   
                             <div className={classes.redBar} />
                             <div className={classes.yellowBar} />
                             <div className={classes.greenBar} />
                             <div className={classes.indicatorBar} />
+                            <div className={classes.segments} />
                         </div>
 
                     </div>);

@@ -98,7 +98,12 @@ function stageThemeOptions(): Parameters<typeof createTheme>[0] {
         components: {
             MuiCssBaseline: {
                 styleOverrides: {
-                    body: { backgroundColor: STAGE.bg },
+                    // Touch instrument, not a web page: no text selection / long-press callouts,
+                    // no scrollbars anywhere (touch scrolling still works), inputs stay editable.
+                    body: { backgroundColor: STAGE.bg, userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' },
+                    'input, textarea': { userSelect: 'text', WebkitUserSelect: 'text' },
+                    '::-webkit-scrollbar': { display: 'none' },
+                    '*': { scrollbarWidth: 'none' },
                     // Touch UI: no scrollbars in the plugin control panel (content still scrolls).
                     '#mainPageControls ::-webkit-scrollbar, #pedalboardScroll::-webkit-scrollbar': { display: 'none' },
                     // Keyboard up: snapshot sheet hugs the top and drops its secondary controls so
@@ -113,6 +118,19 @@ function stageThemeOptions(): Parameters<typeof createTheme>[0] {
             MuiPaper: {
                 styleOverrides: {
                     root: { backgroundImage: "none" }, // no MUI elevation tint: flat panels.
+                },
+            },
+            MuiButtonBase: {
+                defaultProps: { disableRipple: true }, // no Material ink ripple
+            },
+            MuiListItemButton: {
+                styleOverrides: {
+                    root: {
+                        '&.Mui-selected': {
+                            backgroundColor: 'rgba(245,165,36,0.14)',
+                            '&:hover': { backgroundColor: 'rgba(245,165,36,0.2)' },
+                        },
+                    },
                 },
             },
             MuiAppBar: {
@@ -178,22 +196,14 @@ function stageThemeOptions(): Parameters<typeof createTheme>[0] {
                 styleOverrides: {
                     input: { fontVariantNumeric: "tabular-nums" },
                     underline: {
-                        '&:before': { borderBottom: `1px solid ${STAGE.border}` },
-                        '&:hover:not(.Mui-disabled):before': { borderBottom: `1px solid ${STAGE.textDim}` },
+                        // Read as a value, not a form field: no underline until focused.
+                        '&:before': { borderBottom: '1px solid transparent' },
+                        '&:hover:not(.Mui-disabled):before': { borderBottom: `1px solid ${STAGE.border}` },
                         '&:after': { borderBottom: `2px solid ${STAGE.accent}` },
                     },
                 },
             },
-            MuiListItemButton: {
-                styleOverrides: {
-                    root: {
-                        '&.Mui-selected': {
-                            backgroundColor: 'rgba(245,165,36,0.14)',
-                            '&:hover': { backgroundColor: 'rgba(245,165,36,0.2)' },
-                        },
-                    },
-                },
-            },
+
             MuiTooltip: {
                 styleOverrides: {
                     // Also the value readout while dragging a knob: big enough to read from standing height.
