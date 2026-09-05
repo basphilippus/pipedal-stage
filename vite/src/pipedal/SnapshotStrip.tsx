@@ -232,8 +232,11 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
                 style={{
                     flex: "1 1 0", minWidth: 0, height: 60, borderRadius: 10, position: "relative",
                     padding: "7px 14px", boxSizing: "border-box", cursor: "pointer",
-                    background: snapshot ? STAGE.panelGradient : "transparent",
-                    border: snapshot ? `1px solid ${active ? color + "90" : STAGE.wire}` : `1px dashed ${STAGE.border}`,
+                    background: snapshot
+                        ? (active ? `linear-gradient(180deg, ${color}55 0%, ${color}22 100%), ${STAGE.panel}` : STAGE.panelGradient)
+                        : "transparent",
+                    border: snapshot ? `1px solid ${active ? color : STAGE.wire}` : `1px dashed ${STAGE.border}`,
+                    borderLeft: snapshot ? `4px solid ${color}` : `1px dashed ${STAGE.border}`,
                     boxShadow: snapshot
                         ? (active ? `${STAGE.innerHighlight}, ${STAGE.shadow}, 0 0 14px 0 ${color}40` : `${STAGE.innerHighlight}, ${STAGE.shadow}`)
                         : "none",
@@ -242,8 +245,8 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
                 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{
-                        fontFamily: STAGE.displayFont, fontSize: 11, letterSpacing: "0.12em",
-                        color: STAGE.textDim, textTransform: "uppercase",
+                        fontFamily: STAGE.displayFont, fontSize: 13, letterSpacing: "0.12em",
+                        color: snapshot ? color : STAGE.textDim, textTransform: "uppercase",
                     }}>{letter}</span>
                     <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         {snapshot?.isModified && (

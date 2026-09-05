@@ -96,32 +96,40 @@ export default class GigView extends React.Component<GigViewProps, GigViewState>
             <div key={key} className="gig-tile"
                 onClick={() => { if (this.tapAllowed() && onTap) onTap(); }}
                 style={{
-                    flex: big ? "1.4 1 0" : "1 1 0", minWidth: 0, borderRadius: 14, position: "relative",
-                    padding: "14px 18px", boxSizing: "border-box", cursor: onTap ? "pointer" : "default",
-                    background: dim ? "transparent" : STAGE.panelGradient,
-                    border: dim ? `1px dashed ${STAGE.border}` : `1px solid ${active ? color + "a0" : STAGE.wire}`,
-                    boxShadow: dim ? "none" : (active ? `${STAGE.innerHighlight}, ${STAGE.shadow}, 0 0 24px 0 ${color}55` : `${STAGE.innerHighlight}, ${STAGE.shadow}`),
+                    flex: big ? "1.4 1 0" : "1 1 0", minWidth: 0, borderRadius: 14, position: "relative", overflow: "hidden",
+                    padding: "14px 18px 16px 18px", boxSizing: "border-box", cursor: onTap ? "pointer" : "default",
+                    // Colour carries identity: inactive = dark tile with a colour bar and a tinted
+                    // key; active = the tile filled with its colour (Quad Cortex scene blocks).
+                    background: dim ? "transparent"
+                        : active ? `linear-gradient(180deg, ${color} 0%, ${color}cc 100%)`
+                        : STAGE.panelGradient,
+                    border: dim ? `1px dashed ${STAGE.border}` : `1px solid ${active ? color : STAGE.wire}`,
+                    borderTop: dim ? `1px dashed ${STAGE.border}` : `5px solid ${color}`,
+                    boxShadow: dim ? "none" : (active ? `${STAGE.shadow}, 0 0 28px 0 ${color}66` : `${STAGE.innerHighlight}, ${STAGE.shadow}`),
                     userSelect: "none", WebkitTapHighlightColor: "transparent", touchAction: "none",
-                    transition: `border-color ${STAGE.ease}, box-shadow ${STAGE.ease}`,
+                    transition: `border-color ${STAGE.ease}, box-shadow ${STAGE.ease}, background ${STAGE.ease}`,
                     display: "flex", flexDirection: "column", justifyContent: "space-between",
                 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontFamily: STAGE.displayFont, fontSize: 13, letterSpacing: "0.14em", color: STAGE.textDim, textTransform: "uppercase" }}>{key}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <span style={{
-                        width: 14, height: 14, borderRadius: "50%",
-                        background: active ? color : (dim ? "#3a3d44" : color + "55"),
-                        boxShadow: active ? `0 0 14px 3px ${color}99, inset 0 -1px 2px rgba(0,0,0,0.4)` : "inset 0 1px 2px rgba(0,0,0,0.6)",
-                        transition: `background ${STAGE.ease}, box-shadow ${STAGE.ease}`,
-                    }} />
+                        fontFamily: STAGE.displayFont, fontSize: 30, lineHeight: 1, letterSpacing: "0.04em",
+                        color: dim ? STAGE.border : (active ? "rgba(14,15,17,0.9)" : color),
+                    }}>{key}</span>
+                    {active && !dim && (
+                        <span style={{
+                            fontFamily: STAGE.displayFont, fontSize: 11, letterSpacing: "0.16em", color: "rgba(14,15,17,0.75)",
+                            border: "1px solid rgba(14,15,17,0.35)", borderRadius: 999, padding: "3px 8px",
+                        }}>ACTIVE</span>
+                    )}
                 </div>
                 <div>
                     <div style={{
-                        fontFamily: STAGE.displayFont, fontSize: 23, letterSpacing: "0.01em", lineHeight: 1.15,
-                        color: dim ? STAGE.border : (active ? STAGE.text : STAGE.textDim),
+                        fontFamily: STAGE.displayFont, fontSize: 24, letterSpacing: "0.01em", lineHeight: 1.15,
+                        color: dim ? STAGE.border : (active ? "#0e0f11" : STAGE.text),
                         overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as any,
                         wordBreak: "break-word",
                     }}>{label}</div>
-                    {sub && <div style={{ fontFamily: STAGE.bodyFont, fontSize: 13, color: STAGE.textDim, marginTop: 4 }}>{sub}</div>}
+                    {sub && <div style={{ fontFamily: STAGE.bodyFont, fontSize: 13, color: active ? "rgba(14,15,17,0.7)" : STAGE.textDim, marginTop: 4 }}>{sub}</div>}
                 </div>
             </div>
         );
