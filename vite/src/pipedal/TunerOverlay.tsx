@@ -23,10 +23,11 @@
 
 import { PiPedalModelFactory } from './PiPedalModel';
 import { Pedalboard, PedalboardItem } from './Pedalboard';
-import { GxTunerView } from './GxTunerView';
+import GxTunerControl from './GxTunerControl';
 import { STAGE } from './StageTheme';
 
 export const TOOB_TUNER_URI = "http://two-play.com/plugins/toob-tuner";
+const TUNER_SCALE = 2.2;
 
 export function findMutedTuner(pedalboard: Pedalboard): PedalboardItem | null {
     for (let item of pedalboard.itemsGenerator()) {
@@ -49,15 +50,18 @@ export default function TunerOverlay(props: { pedalboard: Pedalboard }) {
                 opacity: tuner ? 1 : 0, pointerEvents: tuner ? "auto" : "none",
                 transition: "opacity 180ms cubic-bezier(0.2, 0.8, 0.2, 1)", userSelect: "none", touchAction: "none",
             }}>
-            <div style={{ fontFamily: STAGE.displayFont, fontSize: 16, letterSpacing: "0.2em", color: STAGE.accent, marginBottom: 18 }}>
+            <div style={{ fontFamily: STAGE.displayFont, fontSize: 16, letterSpacing: "0.2em", color: STAGE.accent, marginBottom: 28 }}>
                 TUNER · OUTPUT MUTED
             </div>
-            {tuner && (
-                <div style={{ transform: "scale(2.2)", transformOrigin: "center", margin: "70px 0" }}>
-                    <GxTunerView isToobTuner={true} instanceId={tuner.instanceId} item={tuner} />
-                </div>
-            )}
-            <div style={{ fontFamily: STAGE.displayFont, fontSize: 12, letterSpacing: "0.16em", color: STAGE.textDim, marginTop: 24 }}>
+            {/* Bare dial (220x100 CSS px) scaled up; wrapper reserves the scaled box so flex layout stays honest. */}
+            <div style={{ width: 220 * TUNER_SCALE, height: 100 * TUNER_SCALE, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {tuner && (
+                    <div style={{ transform: `scale(${TUNER_SCALE})`, transformOrigin: "center" }}>
+                        <GxTunerControl instanceId={tuner.instanceId} valueIsMidi={false} />
+                    </div>
+                )}
+            </div>
+            <div style={{ fontFamily: STAGE.displayFont, fontSize: 12, letterSpacing: "0.16em", color: STAGE.textDim, marginTop: 36 }}>
                 TAP ANYWHERE OR PRESS UP + DOWN TO RETURN
             </div>
         </div>
