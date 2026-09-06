@@ -526,6 +526,7 @@ private:
     SystemMidiBinding tunerMidiBinding;
     SystemMidiBinding tapTempoMidiBinding;
     SystemMidiBinding tempoNudgeMidiBinding;
+    SystemMidiBinding tempoPickerMidiBinding;
 
     ChannelSelection channelSelection;
     std::atomic<bool> active = false;
@@ -1053,6 +1054,10 @@ private:
         if (tapTempoMidiBinding.IsTriggered(event))
         {
             this->realtimeWriter.OnRealtimeMidiEvent(RealtimeMidiEventType::TapTempo);
+        }
+        if (tempoPickerMidiBinding.IsTriggered(event))
+        {
+            this->realtimeWriter.OnRealtimeMidiEvent(RealtimeMidiEventType::TempoPicker);
         }
         if (tempoNudgeMidiBinding.IsControlBinding() && tempoNudgeMidiBinding.IsMatch(event) && event.size == 3 && (event.buffer[0] & 0xF0) == 0xB0)
         {
@@ -2447,6 +2452,10 @@ void AudioHostImpl::SetSystemMidiBindings(const std::vector<MidiBinding> &bindin
         else if (i->symbol() == "tempoNudge")
         {
             this->tempoNudgeMidiBinding.SetBinding(*i);
+        }
+        else if (i->symbol() == "tempoPicker")
+        {
+            this->tempoPickerMidiBinding.SetBinding(*i);
         }
         else if (i->symbol() == "reboot")
         {

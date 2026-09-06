@@ -584,6 +584,8 @@ export class PiPedalModel //implements PiPedalModel
     // Global tap tempo (rig): BPM pushed to every tempo-bound port. 0 = daemon without tempo support.
     tempo: ObservableProperty<number> = new ObservableProperty<number>(0);
     tempoTapCount: ObservableProperty<number> = new ObservableProperty<number>(0); // bumps on every tap, incl. the first (un-timed) one
+    // Pedal-driven tempo-sync picker: kind 0 = open/cancel (encoder hold), 1 = step (delta), 2 = confirm (push).
+    tempoPickerEvent: ObservableProperty<{ seq: number; kind: number; delta: number }> = new ObservableProperty({ seq: 0, kind: -1, delta: 0 });
     plugin_classes: ObservableProperty<PluginClass> = new ObservableProperty<PluginClass>(new PluginClass());
     jackConfiguration: ObservableProperty<JackConfiguration> = new ObservableProperty<JackConfiguration>(new JackConfiguration());
     jackSettings: ObservableProperty<JackChannelSelection> = new ObservableProperty<JackChannelSelection>(new JackChannelSelection());
@@ -920,6 +922,9 @@ export class PiPedalModel //implements PiPedalModel
             let bpm = body as number; // negative = first tap of a sequence, tempo unchanged
             if (bpm > 0) this.tempo.set(bpm);
             this.tempoTapCount.set(this.tempoTapCount.get() + 1);
+        } else if (message === "onTempoPickerEvent") {
+            let b = body as number[];
+            this.tempoPickerEvent.set({ seq: this.tempoPickerEvent.get().seq + 1, kind: b[0], delta: b[1] });
         } else if (message === "onSelectedSnapshotChanged") {
             let selectedSnapshot = body as number;
             this.pedalboard.get().selectedSnapshot = selectedSnapshot;
@@ -1854,6 +1859,9 @@ export class PiPedalModel //implements PiPedalModel
     }
     setTempo(bpm: number) {
         this.webSocket?.send("setTempo", bpm);
+    }
+    setTempoPickerOpen(open: boolean) {
+        this.webSocket?.send("setTempoPickerOpen", open);
     }
     previousPreset() {
         this.webSocket?.send("previousPreset");

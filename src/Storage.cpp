@@ -2243,6 +2243,10 @@ std::vector<MidiBinding> Storage::GetSystemMidiBindings()
                 result.push_back(MidiBinding::SystemBinding("tapTempo"));
                 result.push_back(MidiBinding::SystemBinding("tempoNudge"));
             }
+            if (!hasBinding(result, "tempoPicker"))
+            {
+                result.push_back(MidiBinding::SystemBinding("tempoPicker"));
+            }
             return result;
         }
         catch (const std::exception& e)
@@ -2268,6 +2272,7 @@ std::vector<MidiBinding> Storage::GetSystemMidiBindings()
     result.push_back(MidiBinding::SystemBinding("tuner"));
     result.push_back(MidiBinding::SystemBinding("tapTempo"));
     result.push_back(MidiBinding::SystemBinding("tempoNudge"));
+    result.push_back(MidiBinding::SystemBinding("tempoPicker"));
 
     result.push_back(MidiBinding::SystemBinding("stopHotspot"));
     result.push_back(MidiBinding::SystemBinding("startHotspot"));

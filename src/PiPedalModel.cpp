@@ -3741,6 +3741,25 @@ void PiPedalModel::RefreshTempoFromPedalboard()
     if (bpm > 0) FireTempoChanged(bpm);
 }
 
+void PiPedalModel::SetTempoPickerOpen(bool open)
+{
+    std::lock_guard<std::recursive_mutex> guard{mutex};
+    tempoPickerOpen_ = open;
+}
+
+void PiPedalModel::FireTempoPickerEvent(int32_t kind, int32_t delta)
+{
+    SubscriberList subscribers;
+    {
+        std::lock_guard<std::recursive_mutex> guard{mutex};
+        subscribers = this->subscribers;
+    }
+    for (auto &subscriber : subscribers)
+    {
+        subscriber->OnTempoPickerEvent(kind, delta);
+    }
+}
+
 void PiPedalModel::FireTempoChanged(double bpm)
 {
     SubscriberList subscribers;
@@ -3762,17 +3781,25 @@ void PiPedalModel::OnNotifyMidiRealtimeEvent(RealtimeMidiEventType eventType)
         {
         case RealtimeMidiEventType::TapTempo:
         {
-            TapTempo();
+            bool picker;
+            { std::lock_guard<std::recursive_mutex> guard{mutex}; picker = tempoPickerOpen_; }
+            if (picker) FireTempoPickerEvent(2, 0); // push confirms the highlighted subdivision
+            else TapTempo();
         }
         break;
         case RealtimeMidiEventType::TempoUp:
-        {
-            NudgeTempo(1);
-        }
-        break;
         case RealtimeMidiEventType::TempoDown:
         {
-            NudgeTempo(-1);
+            int delta = eventType == RealtimeMidiEventType::TempoUp ? 1 : -1;
+            bool picker;
+            { std::lock_guard<std::recursive_mutex> guard{mutex}; picker = tempoPickerOpen_; }
+            if (picker) FireTempoPickerEvent(1, delta); // rotate moves the highlight
+            else NudgeTempo(delta);
+        }
+        break;
+        case RealtimeMidiEventType::TempoPicker:
+        {
+            FireTempoPickerEvent(0, 0); // hold: open (or cancel when already open)
         }
         break;
         case RealtimeMidiEventType::TunerToggle:

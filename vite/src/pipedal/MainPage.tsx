@@ -55,6 +55,7 @@ import { isDarkMode, isStageTheme } from './DarkMode';
 import SnapshotStrip from './SnapshotStrip';
 import GigView from './GigView';
 import TunerOverlay from './TunerOverlay';
+import TempoSyncPicker from './TempoSyncPicker';
 import { STAGE } from './StageTheme';
 import Snapshot0Icon from "./svg/snapshot_0.svg?react";
 import Snapshot1Icon from "./svg/snapshot_1.svg?react";
@@ -826,6 +827,7 @@ export const MainPage =
                             {this.props.theme.stage && (
                                 <TunerOverlay pedalboard={this.state.pedalboard} />
                             )}
+                            <TempoSyncPicker primaryColor={this.props.theme.palette.primary.main} />
                             <MidiBindingsDialog open={this.state.showMidiBindingsDialog}
                                 onClose={() => this.setState({ showMidiBindingsDialog: false })}
                             />

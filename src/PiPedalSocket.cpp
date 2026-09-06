@@ -1781,6 +1781,14 @@ public:
     }
     REGISTER_MESSAGE_HANDLER(tapTempo)
 
+    void handle_setTempoPickerOpen(int replyTo, json_reader *pReader)
+    {
+        bool open = false;
+        pReader->read(&open);
+        this->model.SetTempoPickerOpen(open);
+    }
+    REGISTER_MESSAGE_HANDLER(setTempoPickerOpen)
+
     void handle_nextPreset(int replyTo, json_reader *pReader)
     {
         model.NextPreset();
@@ -2399,6 +2407,11 @@ private:
     virtual void OnTempoChanged(double bpm)
     {
         Send("onTempoChanged", bpm);
+    }
+    virtual void OnTempoPickerEvent(int32_t kind, int32_t delta)
+    {
+        std::vector<int32_t> body{kind, delta};
+        Send("onTempoPickerEvent", body);
     }
 
     virtual void OnChannelRouterSettingsChanged(int64_t clientId, const ChannelRouterSettings &channelRouterSettings)

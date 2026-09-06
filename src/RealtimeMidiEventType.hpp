@@ -36,6 +36,7 @@ namespace pipedal {
         TapTempo,    // rig: system binding "tapTempo" (one tap)
         TempoUp,     // rig: system binding "tempoNudge" moved up (encoder)
         TempoDown,   // rig: system binding "tempoNudge" moved down
+        TempoPicker, // rig: system binding "tempoPicker" (encoder hold): open/cancel the tempo-sync picker
 
     };
 

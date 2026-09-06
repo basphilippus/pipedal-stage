@@ -44,10 +44,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import GraphicEqCtl, { UpdateGraphicEqPath } from './GraphicEqCtl';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import { SUBDIVISIONS, subdivisionFor, tempoSyncBinding, setTempoSync } from './TempoSync';
+import { subdivisionFor, tempoSyncBinding, setTempoSync, TempoSyncSheet } from './TempoSync';
 import { STAGE } from './StageTheme';
 
 const MIN_ANGLE = -135;
@@ -644,39 +641,13 @@ const PluginControl =
                 this.setState({ syncSheetOpen: false });
             }
             renderSyncSheet(control: UiControl): React.ReactNode {
-                let stage = isStageTheme();
                 let current = tempoSyncBinding(this.model.pedalboard.get(), this.props.instanceId, control.symbol);
-                let currentScale = current ? subdivisionFor(current.rotaryScale).scale : null;
-                let itemStyle = (selected: boolean): React.CSSProperties => ({
-                    display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px",
-                    borderRadius: 8, cursor: "pointer", userSelect: "none", WebkitTapHighlightColor: "transparent",
-                    border: `1px solid ${selected ? (stage ? STAGE.accent : this.props.theme.palette.primary.main) : (stage ? STAGE.border : "transparent")}`,
-                    background: selected ? (stage ? "rgba(245,165,36,0.12)" : "rgba(128,128,128,0.15)") : undefined,
-                    fontFamily: stage ? STAGE.bodyFont : undefined,
-                });
                 return (
-                    <Dialog open={this.state.syncSheetOpen} onClose={() => this.setState({ syncSheetOpen: false })}
-                        className="tempo-sync-sheet" fullWidth maxWidth="xs">
-                        <DialogTitle style={{ fontFamily: stage ? STAGE.displayFont : undefined }}>
-                            {control.name} · Tempo sync
-                        </DialogTitle>
-                        <DialogContent>
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                                <div style={{ ...itemStyle(currentScale === null), gridColumn: "1 / -1" }} onClick={() => this.chooseTempoSync(null)}>
-                                    <span>Free (set by hand)</span>
-                                </div>
-                                {SUBDIVISIONS.map((s) => (
-                                    <div key={s.label} style={itemStyle(currentScale === s.scale)} onClick={() => this.chooseTempoSync(s.scale)}>
-                                        <span>{s.name}</span>
-                                        <span style={{ opacity: 0.7, fontFamily: stage ? STAGE.displayFont : undefined }}>{s.label}</span>
-                                    </div>
-                                ))}
-                            </div>
-                            <div style={{ marginTop: 14, fontSize: 12, opacity: 0.65 }}>
-                                Synced knobs follow the global tempo (tap tempo / encoder).
-                            </div>
-                        </DialogContent>
-                    </Dialog>
+                    <TempoSyncSheet open={this.state.syncSheetOpen} title={control.name + " · Tempo sync"}
+                        currentScale={current ? subdivisionFor(current.rotaryScale).scale : null}
+                        primaryColor={this.props.theme.palette.primary.main}
+                        onChoose={(scale) => this.chooseTempoSync(scale)}
+                        onClose={() => this.setState({ syncSheetOpen: false })} />
                 );
             }
             renderSyncChip(control: UiControl): React.ReactNode {
