@@ -765,6 +765,10 @@ void MidiFeedbackController::OnPedalboardChanged(int64_t clientId, const Pedalbo
 {
     RebuildBindings(pedalboard);
     EnqueueFullRefresh();
+    // a tuner block may have appeared/disappeared muted (tuner mode without a tuner in the preset)
+    PresetIndex presets;
+    model.GetPresets(&presets);
+    EnqueuePresetLabels(presets);
 }
 
 void MidiFeedbackController::OnPresetsChanged(int64_t clientId, const PresetIndex &presets)

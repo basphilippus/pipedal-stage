@@ -467,6 +467,12 @@ namespace pipedal
         std::vector<std::chrono::steady_clock::time_point> tapTimes_;
         void ApplyTempo(double bpm);
         void FireTempoChanged(double bpm);
+        // Tuner mode without a tuner block: a TooB Tuner is inserted at the chain start on
+        // entry and removed again on exit. The preset's modified state is left untouched.
+        int64_t autoTunerInstanceId_ = -1;
+        bool suppressPresetChanged_ = false;
+        void InsertAutoTuner();
+        void RemoveAutoTuner();
         int64_t presetPage_ = 0;
         int64_t PageOfPreset(int64_t instanceId);
         int64_t PresetPageCount();

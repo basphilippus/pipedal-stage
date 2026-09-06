@@ -619,6 +619,16 @@ void PiPedalModel::PreviewOutputVolume(float value)
 
 void PiPedalModel::SetControl(int64_t clientId, int64_t pedalItemId, const std::string &symbol, float value)
 {
+    bool leaveTunerMode = false;
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        leaveTunerMode = pedalItemId != -1 && pedalItemId == autoTunerInstanceId_ && symbol == "MUTE" && value < 0.5f;
+    }
+    if (leaveTunerMode)
+    {
+        RemoveAutoTuner(); // unmuting the borrowed tuner (overlay tap) = leaving tuner mode
+        return;
+    }
     SubscriberList subscribers;
     {
         std::lock_guard<std::recursive_mutex> lock(mutex);
@@ -875,6 +885,7 @@ void PiPedalModel::GetBank(int64_t instanceId, BankFile *pResult)
 
 void PiPedalModel::SetPresetChanged(int64_t clientId, bool value, bool changeSnapshotSelect)
 {
+    if (suppressPresetChanged_) return; // tuner mode inserting/removing its borrowed tuner
     if (changeSnapshotSelect && value && this->pedalboard.selectedSnapshot() != -1)
     {
         auto &snapshot = this->pedalboard.snapshots()[pedalboard.selectedSnapshot()];
@@ -1423,6 +1434,7 @@ void PiPedalModel::LoadPreset(int64_t clientId, int64_t instanceId)
         UpdateDefaults(&this->pedalboard);
         SelectDefaultSnapshot();
         RefreshTempoFromPedalboard();
+    autoTunerInstanceId_ = -1; // any borrowed tuner went with the old pedalboard
 
         this->hasPresetChanged = false; // no fire.
         this->FirePedalboardChanged(clientId);
@@ -2308,6 +2320,7 @@ void PiPedalModel::OpenBank(int64_t clientId, int64_t bankId)
     UpdateDefaults(&this->pedalboard);
     SelectDefaultSnapshot();
     RefreshTempoFromPedalboard();
+    autoTunerInstanceId_ = -1; // any borrowed tuner went with the old pedalboard
     this->hasPresetChanged = false;
     this->FirePedalboardChanged(clientId);
 }
@@ -3465,16 +3478,19 @@ void PiPedalModel::OnNetworkChanged(bool ethernetConnected, bool hotspotConnecte
 
 // Rig: the "tuner" system binding. Toggles the MUTE control of the (first) TooB Tuner
 // in the current preset; the kiosk shows a full-screen tuner while it is muted.
+static const char *TOOB_TUNER_URI = "http://two-play.com/plugins/toob-tuner";
+
 void PiPedalModel::ToggleTunerMute()
 {
     int64_t instanceId = -1;
     float current = 0;
+    bool isAuto = false;
     {
         std::lock_guard<std::recursive_mutex> guard{mutex};
         Pedalboard board = this->pedalboard;
         for (PedalboardItem *item : board.GetAllPlugins())
         {
-            if (item->uri() == "http://two-play.com/plugins/toob-tuner")
+            if (item->uri() == TOOB_TUNER_URI)
             {
                 instanceId = item->instanceId();
                 const ControlValue *v = item->GetControlValue("MUTE");
@@ -3482,11 +3498,84 @@ void PiPedalModel::ToggleTunerMute()
                 break;
             }
         }
+        isAuto = instanceId != -1 && instanceId == autoTunerInstanceId_;
     }
-    if (instanceId != -1)
+    if (instanceId == -1)
     {
-        SetControl(-1, instanceId, "MUTE", current >= 0.5f ? 0.0f : 1.0f);
+        InsertAutoTuner(); // no tuner in this preset: borrow one for the duration
+        return;
     }
+    if (isAuto)
+    {
+        RemoveAutoTuner(); // leaving tuner mode: the borrowed tuner goes away entirely
+        return;
+    }
+    SetControl(-1, instanceId, "MUTE", current >= 0.5f ? 0.0f : 1.0f);
+}
+
+void PiPedalModel::InsertAutoTuner()
+{
+    Pedalboard board;
+    {
+        std::lock_guard<std::recursive_mutex> guard{mutex};
+        if (autoTunerInstanceId_ != -1) return;
+        auto info = pluginHost.GetPluginInfo(TOOB_TUNER_URI);
+        if (!info) return;
+        board = this->pedalboard;
+        PedalboardItem item = board.MakeEmptyItem();
+        item.uri(TOOB_TUNER_URI);
+        item.pluginName(info->name());
+        item.isEnabled(true);
+        item.controlValues().push_back(ControlValue("MUTE", 1.0f));
+        board.items().insert(board.items().begin(), item);
+        UpdateDefaults(&board); // remaining control values from the plugin defaults
+        autoTunerInstanceId_ = item.instanceId();
+    }
+    suppressPresetChanged_ = true;
+    try
+    {
+        UpdateCurrentPedalboard(-1, board);
+    }
+    catch (...)
+    {
+        suppressPresetChanged_ = false;
+        throw;
+    }
+    suppressPresetChanged_ = false;
+}
+
+void PiPedalModel::RemoveAutoTuner()
+{
+    Pedalboard board;
+    {
+        std::lock_guard<std::recursive_mutex> guard{mutex};
+        if (autoTunerInstanceId_ == -1) return;
+        board = this->pedalboard;
+        auto &items = board.items();
+        bool found = false;
+        for (auto i = items.begin(); i != items.end(); ++i)
+        {
+            if (i->instanceId() == autoTunerInstanceId_)
+            {
+                items.erase(i);
+                found = true;
+                break;
+            }
+        }
+        autoTunerInstanceId_ = -1;
+        if (!found) return;
+    }
+    suppressPresetChanged_ = true;
+    try
+    {
+        UpdateCurrentPedalboard(-1, board);
+    }
+    catch (...)
+    {
+        suppressPresetChanged_ = false;
+        throw;
+    }
+    suppressPresetChanged_ = false;
 }
 
 // ---- global tap tempo (rig) ----------------------------------------------
