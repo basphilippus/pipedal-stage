@@ -811,6 +811,10 @@ void PiPedalModel::UpdateCurrentPedalboard(int64_t clientId, Pedalboard &pedalbo
     }
     this->FirePedalboardChanged(clientId, false);
     this->SetPresetChanged(clientId, true);
+    if (!suppressPresetChanged_)
+    {
+        ApplyTempo(GetTempo()); // a port may have just been switched to (or re-subdivided for) tempo sync
+    }
 }
 
 void PiPedalModel::SetPedalboardItemUseModUi(int64_t clientId, int64_t instanceId, bool enabled)
@@ -3680,7 +3684,9 @@ void PiPedalModel::ApplyTempo(double bpm)
                 {
                     const Lv2PortInfo &port = pluginInfo->getPort(binding.symbol());
                     float value;
-                    if (!TempoToPortValue(port.units(), bpm, value)) continue;
+                    // rotaryScale of a Tap Tempo binding = beats per repeat (1 = quarter, 0.75 = dotted 8th, ...)
+                    double scale = binding.rotaryScale() > 0 ? binding.rotaryScale() : 1.0;
+                    if (!TempoToPortValue(port.units(), bpm / scale, value)) continue;
                     float lo = std::min(port.min_value(), port.max_value());
                     float hi = std::max(port.min_value(), port.max_value());
                     if (lo < hi) value = std::clamp(value, lo, hi);
@@ -3714,7 +3720,11 @@ void PiPedalModel::RefreshTempoFromPedalboard()
                 try
                 {
                     const Lv2PortInfo &port = pluginInfo->getPort(binding.symbol());
-                    if (PortValueToTempo(port.units(), cv->value(), bpm)) break;
+                    if (PortValueToTempo(port.units(), cv->value(), bpm))
+                    {
+                        bpm *= binding.rotaryScale() > 0 ? binding.rotaryScale() : 1.0;
+                        break;
+                    }
                 }
                 catch (const std::exception &) {}
             }

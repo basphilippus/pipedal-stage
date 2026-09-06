@@ -31,6 +31,7 @@ import { UiPlugin, UiControl } from './Lv2Plugin';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import MidiBinding from './MidiBinding';
+import { SUBDIVISIONS, subdivisionFor } from './TempoSync';
 import Utility from './Utility';
 import Typography from '@mui/material/Typography';
 import MicNoneOutlinedIcon from '@mui/icons-material/MicNoneOutlined';
@@ -459,6 +460,20 @@ const MidiBindingView =
                                 )}
                             </Select>
                         </div>
+                        {
+                            (midiBinding.bindingType === MidiBinding.BINDING_TYPE_TAP_TEMPO) && (
+                                <div className={classes.controlDiv2} title="Subdivision: beats per repeat, applied to the global tempo">
+                                    <Select variant="standard"
+                                        onChange={(e) => this.handleScaleChange(Number(e.target.value))}
+                                        value={subdivisionFor(midiBinding.rotaryScale).scale}
+                                    >
+                                        {SUBDIVISIONS.map((s) => (
+                                            <MenuItem key={s.label} value={s.scale}>{s.name} ({s.label})</MenuItem>
+                                        ))}
+                                    </Select>
+                                </div>
+                            )
+                        }
                         {
                             (midiBinding.bindingType === MidiBinding.BINDING_TYPE_NOTE
                                 || midiBinding.bindingType === MidiBinding.BINDING_TYPE_TAP_TEMPO

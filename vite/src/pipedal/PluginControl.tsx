@@ -44,6 +44,11 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import GraphicEqCtl, { UpdateGraphicEqPath } from './GraphicEqCtl';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import { SUBDIVISIONS, subdivisionFor, tempoSyncBinding, setTempoSync } from './TempoSync';
+import { STAGE } from './StageTheme';
 
 const MIN_ANGLE = -135;
 const MAX_ANGLE = 135;
@@ -157,7 +162,9 @@ export type PluginControlState = {
     error: boolean;
     editFocused: boolean;
     previewValue?: string;
+    syncSheetOpen: boolean;   // long-press on a time/rate knob: tempo sync picker
 };
+const LONG_PRESS_MS = 550;
 
 export interface CustomPluginControlProps extends WithStyles<typeof pluginControlStyles> {
     title: string;
@@ -238,8 +245,8 @@ const PluginControl =
                 this.state = {
                     error: false,
                     editFocused: false,
-                    previewValue: undefined
-
+                    previewValue: undefined,
+                    syncSheetOpen: false
                 };
                 this.model = PiPedalModelFactory.getInstance();
                 this.imgRef = React.createRef();
@@ -282,6 +289,7 @@ const PluginControl =
             }
 
             componentWillUnmount() {
+                this.cancelLongPress();
                 this.hideZoomedControl();
             }
             inputChanged: boolean = false;
@@ -453,8 +461,10 @@ const PluginControl =
                     if (this.pointersDown === 1) {
                         this.isTap = true;
                         this.tapStartMs = e.timeStamp;
+                        this.armLongPress();
                     } else {
                         this.isTap = false;
+                        this.cancelLongPress();
                     }
 
                     this.pointerId = e.pointerId;
@@ -600,7 +610,98 @@ const PluginControl =
                 }
             }
 
+            // ---- tempo sync (long-press on a time/rate knob) ----
+            longPressTimer?: number = undefined;
+            canTempoSync(): boolean {
+                let c = this.props.uiControl;
+                return !!c && c.isDial() && c.canDoTapTempo();
+            }
+            armLongPress() {
+                this.cancelLongPress();
+                if (!this.canTempoSync()) return;
+                this.longPressTimer = window.setTimeout(() => {
+                    this.longPressTimer = undefined;
+                    if (this.mouseDown && this.isTap) {
+                        // still resting on the knob: open the picker instead of dragging
+                        this.isTap = false;
+                        let img = this.imgRef.current;
+                        if (img && img.style) img.style.opacity = "" + DEFAULT_OPACITY;
+                        this.mouseDown = false;
+                        this.pointersDown = 0;
+                        this.setState({ previewValue: undefined, syncSheetOpen: true });
+                    }
+                }, LONG_PRESS_MS);
+            }
+            cancelLongPress() {
+                if (this.longPressTimer !== undefined) {
+                    window.clearTimeout(this.longPressTimer);
+                    this.longPressTimer = undefined;
+                }
+            }
+            chooseTempoSync(scale: number | null) {
+                let c = this.props.uiControl;
+                if (c) setTempoSync(this.model, this.props.instanceId, c.symbol, scale);
+                this.setState({ syncSheetOpen: false });
+            }
+            renderSyncSheet(control: UiControl): React.ReactNode {
+                let stage = isStageTheme();
+                let current = tempoSyncBinding(this.model.pedalboard.get(), this.props.instanceId, control.symbol);
+                let currentScale = current ? subdivisionFor(current.rotaryScale).scale : null;
+                let itemStyle = (selected: boolean): React.CSSProperties => ({
+                    display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px",
+                    borderRadius: 8, cursor: "pointer", userSelect: "none", WebkitTapHighlightColor: "transparent",
+                    border: `1px solid ${selected ? (stage ? STAGE.accent : this.props.theme.palette.primary.main) : (stage ? STAGE.border : "transparent")}`,
+                    background: selected ? (stage ? "rgba(245,165,36,0.12)" : "rgba(128,128,128,0.15)") : undefined,
+                    fontFamily: stage ? STAGE.bodyFont : undefined,
+                });
+                return (
+                    <Dialog open={this.state.syncSheetOpen} onClose={() => this.setState({ syncSheetOpen: false })}
+                        className="tempo-sync-sheet" fullWidth maxWidth="xs">
+                        <DialogTitle style={{ fontFamily: stage ? STAGE.displayFont : undefined }}>
+                            {control.name} · Tempo sync
+                        </DialogTitle>
+                        <DialogContent>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                                <div style={{ ...itemStyle(currentScale === null), gridColumn: "1 / -1" }} onClick={() => this.chooseTempoSync(null)}>
+                                    <span>Free (set by hand)</span>
+                                </div>
+                                {SUBDIVISIONS.map((s) => (
+                                    <div key={s.label} style={itemStyle(currentScale === s.scale)} onClick={() => this.chooseTempoSync(s.scale)}>
+                                        <span>{s.name}</span>
+                                        <span style={{ opacity: 0.7, fontFamily: stage ? STAGE.displayFont : undefined }}>{s.label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <div style={{ marginTop: 14, fontSize: 12, opacity: 0.65 }}>
+                                Synced knobs follow the global tempo (tap tempo / encoder).
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                );
+            }
+            renderSyncChip(control: UiControl): React.ReactNode {
+                if (!this.canTempoSync()) return null;
+                let binding = tempoSyncBinding(this.model.pedalboard.get(), this.props.instanceId, control.symbol);
+                if (!binding) return null;
+                let stage = isStageTheme();
+                let sub = subdivisionFor(binding.rotaryScale);
+                return (
+                    <div className="tempo-sync-chip" title={"Tempo sync: " + sub.name + " (long-press the knob to change)"}
+                        onClick={() => this.setState({ syncSheetOpen: true })}
+                        style={{
+                            display: "inline-block", marginTop: -4, marginBottom: 2, padding: "1px 7px", borderRadius: 999, fontSize: 10.5,
+                            letterSpacing: "0.08em", lineHeight: "16px", cursor: "pointer", userSelect: "none",
+                            color: stage ? STAGE.accent : this.props.theme.palette.primary.main,
+                            border: `1px solid ${stage ? "rgba(245,165,36,0.45)" : this.props.theme.palette.primary.main}`,
+                            fontFamily: stage ? STAGE.displayFont : undefined,
+                        }}>
+                        ♩ {sub.label}
+                    </div>
+                );
+            }
+
             releaseCapture(e: PointerEvent) {
+                this.cancelLongPress();
                 let img = this.imgRef.current;
 
                 if (img && img.style) {
@@ -638,6 +739,7 @@ const PluginControl =
                     let distance = Math.sqrt(dx * dx + dy * dy);
                     if (distance >= this.clickSlop()) {
                         this.isTap = false;
+                        this.cancelLongPress();
                     }
                 }
 
@@ -1200,7 +1302,9 @@ const PluginControl =
 
                                                 >
                                                     {this.formatDisplayValue(control, value)}</Typography>
+                                                {this.renderSyncChip(control)}
                                             </div>
+                                            {this.state.syncSheetOpen && this.renderSyncSheet(control)}
                                         </div>
                                     )
                                 )
