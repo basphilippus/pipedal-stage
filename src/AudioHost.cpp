@@ -526,7 +526,6 @@ private:
     SystemMidiBinding tunerMidiBinding;
     SystemMidiBinding tapTempoMidiBinding;
     SystemMidiBinding tempoNudgeMidiBinding;
-    uint8_t lastTempoNudgeValue = 0;
 
     ChannelSelection channelSelection;
     std::atomic<bool> active = false;
@@ -1057,13 +1056,16 @@ private:
         }
         if (tempoNudgeMidiBinding.IsControlBinding() && tempoNudgeMidiBinding.IsMatch(event) && event.size == 3 && (event.buffer[0] & 0xF0) == 0xB0)
         {
-            // absolute encoder: direction only.
+            // relative encoder (7-bit two's complement): 1..63 = +n steps, 65..127 = -(128-n) steps.
+            // An absolute 0-127 encoder would saturate at the ends, so the pedal sends relative.
             uint8_t v = event.buffer[2];
-            if (v > lastTempoNudgeValue)
+            int steps = v < 64 ? (int)v : (int)v - 128;
+            if (steps > 8) steps = 8;      // a fast spin still nudges a bounded amount
+            if (steps < -8) steps = -8;
+            for (; steps > 0; --steps)
                 this->realtimeWriter.OnRealtimeMidiEvent(RealtimeMidiEventType::TempoUp);
-            else if (v < lastTempoNudgeValue)
+            for (; steps < 0; ++steps)
                 this->realtimeWriter.OnRealtimeMidiEvent(RealtimeMidiEventType::TempoDown);
-            lastTempoNudgeValue = v;
         }
         if (stopHotspotMidiBinding.IsTriggered(event))
         {
