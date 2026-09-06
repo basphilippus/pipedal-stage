@@ -28,6 +28,8 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <chrono>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -70,6 +72,7 @@ namespace pipedal
         void OnAlsaSequencerConfigurationChanged(const AlsaSequencerConfiguration &configuration) override;
         void OnSelectedSnapshotChanged(int64_t selectedSnapshot) override;
         void OnPresetPageChanged(int64_t page) override;
+        void OnTempoChanged(double bpm) override; // flashes "<n> BPM" on the pedal banner
         void OnSystemMidiBindingsChanged(const std::vector<MidiBinding> &bindings) override;
 
     private:
@@ -136,6 +139,10 @@ namespace pipedal
         std::mutex qMutex;
         std::condition_variable qCv;
         std::deque<Event> queue;
+        // tempo flash: banner to restore, and when (guarded by qMutex; consumed by the sender thread)
+        static constexpr int TEMPO_FLASH_MS = 1500;
+        std::optional<std::chrono::steady_clock::time_point> bannerRestoreAt;
+        std::string bannerRestoreText;
 
         // ---- sender-thread-only state ----
         std::jthread senderThread;

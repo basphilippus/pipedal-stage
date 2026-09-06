@@ -581,6 +581,9 @@ export class PiPedalModel //implements PiPedalModel
     selectedSnapshot: ObservableProperty<number> = new ObservableProperty<number>(-1);
     // Preset page shared with the MIDI controller (4 presets per page; see PiPedalModel::SetPresetPage).
     presetPage: ObservableProperty<number> = new ObservableProperty<number>(0);
+    // Global tap tempo (rig): BPM pushed to every tempo-bound port. 0 = daemon without tempo support.
+    tempo: ObservableProperty<number> = new ObservableProperty<number>(0);
+    tempoTapCount: ObservableProperty<number> = new ObservableProperty<number>(0); // bumps on every tap, incl. the first (un-timed) one
     plugin_classes: ObservableProperty<PluginClass> = new ObservableProperty<PluginClass>(new PluginClass());
     jackConfiguration: ObservableProperty<JackConfiguration> = new ObservableProperty<JackConfiguration>(new JackConfiguration());
     jackSettings: ObservableProperty<JackChannelSelection> = new ObservableProperty<JackChannelSelection>(new JackChannelSelection());
@@ -913,6 +916,10 @@ export class PiPedalModel //implements PiPedalModel
             }
         } else if (message === "onPresetPageChanged") {
             this.presetPage.set(body as number);
+        } else if (message === "onTempoChanged") {
+            let bpm = body as number; // negative = first tap of a sequence, tempo unchanged
+            if (bpm > 0) this.tempo.set(bpm);
+            this.tempoTapCount.set(this.tempoTapCount.get() + 1);
         } else if (message === "onSelectedSnapshotChanged") {
             let selectedSnapshot = body as number;
             this.pedalboard.get().selectedSnapshot = selectedSnapshot;
@@ -1543,6 +1550,11 @@ export class PiPedalModel //implements PiPedalModel
             } catch {
                 this.presetPage.set(0); // stock daemon: no paging
             }
+            try {
+                this.tempo.set(await this.getWebSocket().request<number>("getTempo"));
+            } catch {
+                this.tempo.set(0); // stock daemon: no global tempo
+            }
             this.jackServerSettings.set(
                 new JackServerSettings().deserialize(
                     await this.getWebSocket().request<any>("getJackServerSettings")
@@ -1836,6 +1848,12 @@ export class PiPedalModel //implements PiPedalModel
     }
     setPresetPage(page: number) {
         this.webSocket?.send("setPresetPage", page);
+    }
+    tapTempo() {
+        this.webSocket?.send("tapTempo", true);
+    }
+    setTempo(bpm: number) {
+        this.webSocket?.send("setTempo", bpm);
     }
     previousPreset() {
         this.webSocket?.send("previousPreset");

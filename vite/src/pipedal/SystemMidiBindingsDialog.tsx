@@ -174,6 +174,10 @@ export const SystemMidiBindingDialog =
                         displayName = "Reboot";
                     } else if (item.symbol === "tuner") {
                         displayName = "Tuner mode (toggle tuner mute)";
+                    } else if (item.symbol === "tapTempo") {
+                        displayName = "Tap tempo (global)";
+                    } else if (item.symbol === "tempoNudge") {
+                        displayName = "Tempo nudge (encoder, ±1 BPM per step)";
                     } else {
                         found = false;
                     }

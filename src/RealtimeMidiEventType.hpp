@@ -33,6 +33,9 @@ namespace pipedal {
         Snapshot5,
         Snapshot6,
         TunerToggle, // rig: system binding "tuner" toggles the tuner block's Mute
+        TapTempo,    // rig: system binding "tapTempo" (one tap)
+        TempoUp,     // rig: system binding "tempoNudge" moved up (encoder)
+        TempoDown,   // rig: system binding "tempoNudge" moved down
 
     };
 

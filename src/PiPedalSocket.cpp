@@ -1761,6 +1761,26 @@ public:
     }
     REGISTER_MESSAGE_HANDLER(setPresetPage)
 
+    void handle_getTempo(int replyTo, json_reader *pReader)
+    {
+        Reply(replyTo, "getTempo", this->model.GetTempo());
+    }
+    REGISTER_MESSAGE_HANDLER(getTempo)
+
+    void handle_setTempo(int replyTo, json_reader *pReader)
+    {
+        double bpm = 0;
+        pReader->read(&bpm);
+        this->model.SetTempo(bpm);
+    }
+    REGISTER_MESSAGE_HANDLER(setTempo)
+
+    void handle_tapTempo(int replyTo, json_reader *pReader)
+    {
+        this->model.TapTempo();
+    }
+    REGISTER_MESSAGE_HANDLER(tapTempo)
+
     void handle_nextPreset(int replyTo, json_reader *pReader)
     {
         model.NextPreset();
@@ -2375,6 +2395,10 @@ private:
     virtual void OnPresetPageChanged(int64_t page)
     {
         Send("onPresetPageChanged", page);
+    }
+    virtual void OnTempoChanged(double bpm)
+    {
+        Send("onTempoChanged", bpm);
     }
 
     virtual void OnChannelRouterSettingsChanged(int64_t clientId, const ChannelRouterSettings &channelRouterSettings)

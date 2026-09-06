@@ -20,6 +20,7 @@
 
 #include "pch.h"
 #include "MidiFeedbackController.hpp"
+#include <cmath>
 #include "PluginType.hpp"
 #include "PluginHost.hpp"
 #include "Lv2Log.hpp"
@@ -413,6 +414,10 @@ void MidiFeedbackController::EnqueuePresetLabels(const PresetIndex &presets)
     if (bannerName != lastBannerSent)
     {
         lastBannerSent = bannerName;
+        {
+            std::lock_guard<std::mutex> lock(qMutex);
+            bannerRestoreAt.reset(); // a real banner change supersedes a pending tempo flash restore
+        }
         Event event;
         event.type = EvType::SendSysEx;
         event.sysex = MakeBannerSysEx(bannerName);
@@ -463,6 +468,44 @@ bool MidiFeedbackController::TunerMuted()
         }
     }
     return false;
+}
+
+void MidiFeedbackController::OnTempoChanged(double bpm)
+{
+    if (bpm <= 0)
+    {
+        return; // first tap of a sequence: nothing to show yet
+    }
+    // Flash the tempo on the pedal banner, then fall back to the preset banner.
+    char buf[24];
+    snprintf(buf, sizeof(buf), "%d BPM", (int)std::lround(bpm));
+    std::string restoreText;
+    {
+        PresetIndex presets;
+        model.GetPresets(&presets);
+        for (const auto &entry : presets.presets())
+        {
+            if (entry.instanceId() == presets.selectedInstanceId())
+            {
+                restoreText = entry.name();
+                break;
+            }
+        }
+        if (TunerMuted())
+        {
+            restoreText = "TUNER";
+        }
+    }
+    lastBannerSent = restoreText; // the preset-banner logic keeps treating the preset name as shown
+    {
+        std::lock_guard<std::mutex> lock(qMutex);
+        bannerRestoreAt = std::chrono::steady_clock::now() + std::chrono::milliseconds(TEMPO_FLASH_MS);
+        bannerRestoreText = restoreText;
+    }
+    Event event;
+    event.type = EvType::SendSysEx;
+    event.sysex = MakeBannerSysEx(buf);
+    Enqueue(std::move(event));
 }
 
 void MidiFeedbackController::OnPresetPageChanged(int64_t page)
@@ -817,8 +860,27 @@ void MidiFeedbackController::SenderThreadProc(std::stop_token stopToken)
         Event event;
         {
             std::unique_lock<std::mutex> lock(qMutex);
-            qCv.wait(lock, [&]()
-                     { return !queue.empty() || stopToken.stop_requested(); });
+            while (queue.empty() && !stopToken.stop_requested())
+            {
+                if (bannerRestoreAt.has_value())
+                {
+                    // pending tempo-flash restore: wake at its deadline
+                    auto deadline = *bannerRestoreAt;
+                    qCv.wait_until(lock, deadline);
+                    if (bannerRestoreAt.has_value() && std::chrono::steady_clock::now() >= *bannerRestoreAt)
+                    {
+                        Event restore;
+                        restore.type = EvType::SendSysEx;
+                        restore.sysex = MakeBannerSysEx(bannerRestoreText);
+                        bannerRestoreAt.reset();
+                        queue.push_back(std::move(restore));
+                    }
+                }
+                else
+                {
+                    qCv.wait(lock);
+                }
+            }
             if (queue.empty())
             {
                 break; // stop requested

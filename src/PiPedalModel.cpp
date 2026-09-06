@@ -19,6 +19,8 @@
 
 #include "pch.h"
 #include <future>
+#include <cmath>
+#include <algorithm>
 #include "ServiceConfiguration.hpp"
 #include "AudioConfig.hpp"
 #include "ConfigUtil.hpp"
@@ -1420,6 +1422,7 @@ void PiPedalModel::LoadPreset(int64_t clientId, int64_t instanceId)
         this->pedalboard = storage.GetCurrentPreset();
         UpdateDefaults(&this->pedalboard);
         SelectDefaultSnapshot();
+        RefreshTempoFromPedalboard();
 
         this->hasPresetChanged = false; // no fire.
         this->FirePedalboardChanged(clientId);
@@ -2304,6 +2307,7 @@ void PiPedalModel::OpenBank(int64_t clientId, int64_t bankId)
 
     UpdateDefaults(&this->pedalboard);
     SelectDefaultSnapshot();
+    RefreshTempoFromPedalboard();
     this->hasPresetChanged = false;
     this->FirePedalboardChanged(clientId);
 }
@@ -3485,12 +3489,193 @@ void PiPedalModel::ToggleTunerMute()
     }
 }
 
+// ---- global tap tempo (rig) ----------------------------------------------
+
+static bool TempoToPortValue(Units units, double bpm, float &value)
+{
+    switch (units)
+    {
+    case Units::bpm: value = (float)bpm; return true;
+    case Units::hz:  value = (float)(bpm / 60.0); return true;
+    case Units::s:   value = (float)(60.0 / bpm); return true;
+    case Units::ms:  value = (float)(60000.0 / bpm); return true;
+    default: return false;
+    }
+}
+static bool PortValueToTempo(Units units, float value, double &bpm)
+{
+    if (value <= 0) return false;
+    switch (units)
+    {
+    case Units::bpm: bpm = value; return true;
+    case Units::hz:  bpm = value * 60.0; return true;
+    case Units::s:   bpm = 60.0 / value; return true;
+    case Units::ms:  bpm = 60000.0 / value; return true;
+    default: return false;
+    }
+}
+static constexpr double MIN_TEMPO = 40.0;
+static constexpr double MAX_TEMPO = 300.0;
+
+double PiPedalModel::GetTempo()
+{
+    std::lock_guard<std::recursive_mutex> guard{mutex};
+    return tempo_;
+}
+
+void PiPedalModel::SetTempo(double bpm)
+{
+    if (!(bpm > 0)) return;
+    if (bpm < MIN_TEMPO) bpm = MIN_TEMPO;
+    if (bpm > MAX_TEMPO) bpm = MAX_TEMPO;
+    bpm = std::round(bpm * 10.0) / 10.0;
+    {
+        std::lock_guard<std::recursive_mutex> guard{mutex};
+        tempo_ = bpm;
+    }
+    ApplyTempo(bpm);
+    FireTempoChanged(bpm);
+}
+
+void PiPedalModel::NudgeTempo(int steps)
+{
+    SetTempo(std::round(GetTempo()) + steps);
+}
+
+void PiPedalModel::TapTempo()
+{
+    using clock = std::chrono::steady_clock;
+    auto now = clock::now();
+    double bpm = -1;
+    {
+        std::lock_guard<std::recursive_mutex> guard{mutex};
+        if (!tapTimes_.empty())
+        {
+            double sinceLast = std::chrono::duration<double>(now - tapTimes_.back()).count();
+            if (sinceLast < 60.0 / MAX_TEMPO) return;   // bounce / double trigger
+            if (sinceLast > 2.0) tapTimes_.clear();      // new tap sequence
+        }
+        tapTimes_.push_back(now);
+        while (tapTimes_.size() > 5) tapTimes_.erase(tapTimes_.begin());
+        if (tapTimes_.size() >= 2)
+        {
+            double seconds = std::chrono::duration<double>(tapTimes_.back() - tapTimes_.front()).count() / (double)(tapTimes_.size() - 1);
+            bpm = 60.0 / seconds;
+        }
+    }
+    if (bpm > 0)
+    {
+        SetTempo(bpm);
+    }
+    else
+    {
+        FireTempoChanged(-GetTempo()); // negative = "first tap armed" pulse for the UI, value unchanged
+    }
+}
+
+void PiPedalModel::ApplyTempo(double bpm)
+{
+    struct Target { int64_t instanceId; std::string symbol; float value; };
+    std::vector<Target> targets;
+    {
+        std::lock_guard<std::recursive_mutex> guard{mutex};
+        Pedalboard board = this->pedalboard;
+        for (PedalboardItem *item : board.GetAllPlugins())
+        {
+            for (const MidiBinding &binding : item->midiBindings())
+            {
+                if (binding.bindingType() != BINDING_TYPE_TAP_TEMPO) continue;
+                auto pluginInfo = GetPluginInfo(item->uri());
+                if (!pluginInfo) continue;
+                try
+                {
+                    const Lv2PortInfo &port = pluginInfo->getPort(binding.symbol());
+                    float value;
+                    if (!TempoToPortValue(port.units(), bpm, value)) continue;
+                    float lo = std::min(port.min_value(), port.max_value());
+                    float hi = std::max(port.min_value(), port.max_value());
+                    if (lo < hi) value = std::clamp(value, lo, hi);
+                    targets.push_back({item->instanceId(), binding.symbol(), value});
+                }
+                catch (const std::exception &) { /* port gone */ }
+            }
+        }
+    }
+    for (const Target &t : targets)
+    {
+        SetControl(-1, t.instanceId, t.symbol, t.value);
+    }
+}
+
+void PiPedalModel::RefreshTempoFromPedalboard()
+{
+    double bpm = -1;
+    {
+        std::lock_guard<std::recursive_mutex> guard{mutex};
+        Pedalboard board = this->pedalboard;
+        for (PedalboardItem *item : board.GetAllPlugins())
+        {
+            for (const MidiBinding &binding : item->midiBindings())
+            {
+                if (binding.bindingType() != BINDING_TYPE_TAP_TEMPO) continue;
+                auto pluginInfo = GetPluginInfo(item->uri());
+                if (!pluginInfo) continue;
+                const ControlValue *cv = item->GetControlValue(binding.symbol());
+                if (!cv) continue;
+                try
+                {
+                    const Lv2PortInfo &port = pluginInfo->getPort(binding.symbol());
+                    if (PortValueToTempo(port.units(), cv->value(), bpm)) break;
+                }
+                catch (const std::exception &) {}
+            }
+            if (bpm > 0) break;
+        }
+        if (bpm > 0)
+        {
+            bpm = std::round(std::clamp(bpm, MIN_TEMPO, MAX_TEMPO) * 10.0) / 10.0;
+            if (bpm == tempo_) return;
+            tempo_ = bpm;
+            tapTimes_.clear();
+        }
+    }
+    if (bpm > 0) FireTempoChanged(bpm);
+}
+
+void PiPedalModel::FireTempoChanged(double bpm)
+{
+    SubscriberList subscribers;
+    {
+        std::lock_guard<std::recursive_mutex> guard{mutex};
+        subscribers = this->subscribers;
+    }
+    for (auto &subscriber : subscribers)
+    {
+        subscriber->OnTempoChanged(bpm);
+    }
+}
+
 void PiPedalModel::OnNotifyMidiRealtimeEvent(RealtimeMidiEventType eventType)
 {
     try
     {
         switch (eventType)
         {
+        case RealtimeMidiEventType::TapTempo:
+        {
+            TapTempo();
+        }
+        break;
+        case RealtimeMidiEventType::TempoUp:
+        {
+            NudgeTempo(1);
+        }
+        break;
+        case RealtimeMidiEventType::TempoDown:
+        {
+            NudgeTempo(-1);
+        }
+        break;
         case RealtimeMidiEventType::TunerToggle:
         {
             ToggleTunerMute();

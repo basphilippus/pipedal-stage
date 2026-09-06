@@ -18,6 +18,7 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
+#include <chrono>
 #include <mutex>
 #include "UpdaterStatus.hpp"
 #include "PluginHost.hpp"
@@ -73,6 +74,7 @@ namespace pipedal
         virtual void OnPedalboardChanged(int64_t clientId, const Pedalboard &pedalboard) = 0;
         virtual void OnPresetsChanged(int64_t clientId, const PresetIndex &presets) = 0;
         virtual void OnPresetPageChanged(int64_t page) = 0;
+        virtual void OnTempoChanged(double bpm) = 0; // rig: global tap tempo
         virtual void OnPresetChanged(bool changed) = 0;
         virtual void OnSnapshotModified(int64_t selectedSnapshot, bool modified) = 0;
         virtual void OnSelectedSnapshotChanged(int64_t selectedSnapshot) = 0;
@@ -453,6 +455,18 @@ namespace pipedal
 
         void SelectDefaultSnapshot();
         void ToggleTunerMute();
+        // Global tap tempo (rig). Tempo is pushed to every port of the current preset that
+        // has a stock "Tap Tempo" MIDI binding (units-aware), so the flag and the value
+        // both live in stock preset data.
+        double GetTempo();
+        void SetTempo(double bpm);
+        void TapTempo();
+        void NudgeTempo(int steps);
+        void RefreshTempoFromPedalboard(); // derive tempo from the first tempo-bound port
+        double tempo_ = 120.0;
+        std::vector<std::chrono::steady_clock::time_point> tapTimes_;
+        void ApplyTempo(double bpm);
+        void FireTempoChanged(double bpm);
         int64_t presetPage_ = 0;
         int64_t PageOfPreset(int64_t instanceId);
         int64_t PresetPageCount();

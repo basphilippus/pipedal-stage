@@ -311,6 +311,7 @@ public:
 
     bool IsMatch(const MidiEvent &event);
     bool IsTriggered(const MidiEvent &event);
+    bool IsControlBinding() const { return currentBinding.bindingType() == BINDING_TYPE_CONTROL; }
 };
 
 bool SystemMidiBinding::IsTriggered(const MidiEvent &event)
@@ -523,6 +524,9 @@ private:
     SystemMidiBinding rebootMidiBinding;
     SystemMidiBinding shutdownMidiBinding;
     SystemMidiBinding tunerMidiBinding;
+    SystemMidiBinding tapTempoMidiBinding;
+    SystemMidiBinding tempoNudgeMidiBinding;
+    uint8_t lastTempoNudgeValue = 0;
 
     ChannelSelection channelSelection;
     std::atomic<bool> active = false;
@@ -1046,6 +1050,20 @@ private:
         if (tunerMidiBinding.IsTriggered(event))
         {
             this->realtimeWriter.OnRealtimeMidiEvent(RealtimeMidiEventType::TunerToggle);
+        }
+        if (tapTempoMidiBinding.IsTriggered(event))
+        {
+            this->realtimeWriter.OnRealtimeMidiEvent(RealtimeMidiEventType::TapTempo);
+        }
+        if (tempoNudgeMidiBinding.IsControlBinding() && tempoNudgeMidiBinding.IsMatch(event) && event.size == 3 && (event.buffer[0] & 0xF0) == 0xB0)
+        {
+            // absolute encoder: direction only.
+            uint8_t v = event.buffer[2];
+            if (v > lastTempoNudgeValue)
+                this->realtimeWriter.OnRealtimeMidiEvent(RealtimeMidiEventType::TempoUp);
+            else if (v < lastTempoNudgeValue)
+                this->realtimeWriter.OnRealtimeMidiEvent(RealtimeMidiEventType::TempoDown);
+            lastTempoNudgeValue = v;
         }
         if (stopHotspotMidiBinding.IsTriggered(event))
         {
@@ -2419,6 +2437,14 @@ void AudioHostImpl::SetSystemMidiBindings(const std::vector<MidiBinding> &bindin
         else if (i->symbol() == "tuner")
         {
             this->tunerMidiBinding.SetBinding(*i);
+        }
+        else if (i->symbol() == "tapTempo")
+        {
+            this->tapTempoMidiBinding.SetBinding(*i);
+        }
+        else if (i->symbol() == "tempoNudge")
+        {
+            this->tempoNudgeMidiBinding.SetBinding(*i);
         }
         else if (i->symbol() == "reboot")
         {

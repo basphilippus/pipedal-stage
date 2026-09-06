@@ -36,6 +36,7 @@ import { PiPedalModel, PiPedalModelFactory } from './PiPedalModel';
 import { Pedalboard, Snapshot } from './Pedalboard';
 import { colorKeys } from './MaterialColors';
 import { STAGE } from './StageTheme';
+import TempoWidget from './TempoWidget';
 
 export const SNAPSHOT_STRIP_SLOTS = 4;
 const LONG_PRESS_MS = 450;
@@ -348,6 +349,7 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
                 padding: "8px 16px 10px 16px", borderTop: `1px solid ${STAGE.border}`, background: STAGE.bg,
             }}>
                 {tiles}
+                <TempoWidget />
                 {this.props.onOpenGigView && (
                     <div className="gig-handle" onClick={() => this.props.onOpenGigView!()}
                         title="Gig view"
