@@ -45,6 +45,7 @@ namespace
     constexpr uint8_t SYSEX_CMD_CLEAR_ALL = 0x02;
     constexpr uint8_t SYSEX_CMD_SET_PC_LABEL = 0x03;
     constexpr uint8_t SYSEX_CMD_SET_BANNER = 0x04; // active preset name, independent of the key page
+    constexpr uint8_t SYSEX_CMD_SET_TEMPO = 0x05;  // bpm*10 as 14-bit LSB,MSB; firmware shows it and self-times a beat dot
 
     // LED color codes shared with the controller firmware.
     constexpr uint8_t COLOR_WHITE = 0;
@@ -259,6 +260,12 @@ void MidiFeedbackController::Start()
                 lastProgramSent = -1; // force PC resend so the preset banner populates
                 lastSentPcLabels.clear(); // device may have rebooted; resend names
                 lastBannerSent = "\x01";  // impossible name: force a banner resend
+                {
+                    Event tempo;
+                    tempo.type = EvType::SendSysEx;
+                    tempo.sysex = MakeTempoSysEx(model.GetTempo());
+                    Enqueue(std::move(tempo));
+                }
                 PresetIndex presets;
                 model.GetPresets(&presets);
                 OnPresetsChanged(CLIENT_ID, presets);
@@ -414,10 +421,6 @@ void MidiFeedbackController::EnqueuePresetLabels(const PresetIndex &presets)
     if (bannerName != lastBannerSent)
     {
         lastBannerSent = bannerName;
-        {
-            std::lock_guard<std::mutex> lock(qMutex);
-            bannerRestoreAt.reset(); // a real banner change supersedes a pending tempo flash restore
-        }
         Event event;
         event.type = EvType::SendSysEx;
         event.sysex = MakeBannerSysEx(bannerName);
@@ -472,40 +475,24 @@ bool MidiFeedbackController::TunerMuted()
 
 void MidiFeedbackController::OnTempoChanged(double bpm)
 {
-    if (bpm <= 0)
-    {
-        return; // first tap of a sequence: nothing to show yet
-    }
-    // Flash the tempo on the pedal banner, then fall back to the preset banner.
-    char buf[24];
-    snprintf(buf, sizeof(buf), "%d BPM", (int)std::lround(bpm));
-    std::string restoreText;
-    {
-        PresetIndex presets;
-        model.GetPresets(&presets);
-        for (const auto &entry : presets.presets())
-        {
-            if (entry.instanceId() == presets.selectedInstanceId())
-            {
-                restoreText = entry.name();
-                break;
-            }
-        }
-        if (TunerMuted())
-        {
-            restoreText = "TUNER";
-        }
-    }
-    lastBannerSent = restoreText; // the preset-banner logic keeps treating the preset name as shown
-    {
-        std::lock_guard<std::mutex> lock(qMutex);
-        bannerRestoreAt = std::chrono::steady_clock::now() + std::chrono::milliseconds(TEMPO_FLASH_MS);
-        bannerRestoreText = restoreText;
-    }
+    // The pedal shows the tempo in its status line and blinks a self-timed beat dot.
+    // A negative value is the first tap of a sequence: resend the current tempo so the
+    // firmware re-phases its beat to the tap.
+    double value = bpm > 0 ? bpm : model.GetTempo();
+    if (value <= 0) return;
     Event event;
     event.type = EvType::SendSysEx;
-    event.sysex = MakeBannerSysEx(buf);
+    event.sysex = MakeTempoSysEx(value);
     Enqueue(std::move(event));
+}
+
+std::vector<uint8_t> MidiFeedbackController::MakeTempoSysEx(double bpm)
+{
+    long raw = std::lround(bpm * 10.0);
+    if (raw < 0) raw = 0;
+    if (raw > 16383) raw = 16383;
+    return {0xF0, SYSEX_MFR_ID, SYSEX_TAG_0, SYSEX_TAG_1, SYSEX_VERSION, SYSEX_CMD_SET_TEMPO,
+            (uint8_t)(raw & 0x7F), (uint8_t)((raw >> 7) & 0x7F), 0xF7};
 }
 
 void MidiFeedbackController::OnPresetPageChanged(int64_t page)
@@ -864,27 +851,8 @@ void MidiFeedbackController::SenderThreadProc(std::stop_token stopToken)
         Event event;
         {
             std::unique_lock<std::mutex> lock(qMutex);
-            while (queue.empty() && !stopToken.stop_requested())
-            {
-                if (bannerRestoreAt.has_value())
-                {
-                    // pending tempo-flash restore: wake at its deadline
-                    auto deadline = *bannerRestoreAt;
-                    qCv.wait_until(lock, deadline);
-                    if (bannerRestoreAt.has_value() && std::chrono::steady_clock::now() >= *bannerRestoreAt)
-                    {
-                        Event restore;
-                        restore.type = EvType::SendSysEx;
-                        restore.sysex = MakeBannerSysEx(bannerRestoreText);
-                        bannerRestoreAt.reset();
-                        queue.push_back(std::move(restore));
-                    }
-                }
-                else
-                {
-                    qCv.wait(lock);
-                }
-            }
+            qCv.wait(lock, [&]()
+                     { return !queue.empty() || stopToken.stop_requested(); });
             if (queue.empty())
             {
                 break; // stop requested

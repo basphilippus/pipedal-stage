@@ -44,6 +44,8 @@
 //   SET_SWITCH:   01 <cc 0-119> <channel 0-15> <color 0-8> <labelLen 0-16> <ascii...> F7
 //   CLEAR_ALL:    02 F7
 //   SET_PC_LABEL: 03 <program 0-127> <labelLen 0-16> <ascii...> F7
+//   SET_BANNER:   04 <labelLen 0-16> <ascii...> F7
+//   SET_TEMPO:    05 <bpm*10 LSB> <bpm*10 MSB> F7
 // The receiving firmware ignores frames not starting with the full header.
 
 namespace pipedal
@@ -139,10 +141,6 @@ namespace pipedal
         std::mutex qMutex;
         std::condition_variable qCv;
         std::deque<Event> queue;
-        // tempo flash: banner to restore, and when (guarded by qMutex; consumed by the sender thread)
-        static constexpr int TEMPO_FLASH_MS = 1500;
-        std::optional<std::chrono::steady_clock::time_point> bannerRestoreAt;
-        std::string bannerRestoreText;
 
         // ---- sender-thread-only state ----
         std::jthread senderThread;
@@ -166,6 +164,7 @@ namespace pipedal
         static std::vector<uint8_t> MakeClearAllSysEx();
         static std::vector<uint8_t> MakePcLabelSysEx(uint8_t program, const std::string &name);
         static std::vector<uint8_t> MakeBannerSysEx(const std::string &name);
+        static std::vector<uint8_t> MakeTempoSysEx(double bpm);
         void EnqueuePresetLabels(const PresetIndex &presets); // labels + lit key for the current preset page
 
         void SenderThreadProc(std::stop_token stopToken);
