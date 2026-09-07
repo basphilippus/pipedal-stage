@@ -3238,7 +3238,10 @@ bool PiPedalModel::LoadCurrentPedalboard()
     }
 
     Lv2PedalboardErrorList errorMessages;
+    auto tCreate0 = std::chrono::steady_clock::now();
     std::shared_ptr<Lv2Pedalboard> lv2Pedalboard{this->pluginHost.CreateLv2Pedalboard(this->pedalboard, errorMessages)};
+    auto tCreate1 = std::chrono::steady_clock::now();
+    Lv2Log::info("Preset load: CreateLv2Pedalboard %.1f ms", std::chrono::duration<double, std::milli>(tCreate1 - tCreate0).count());
     this->lv2Pedalboard = lv2Pedalboard;
 
     // apply the error messages to the lv2Pedalboard.

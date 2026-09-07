@@ -1336,9 +1336,14 @@ void Lv2Effect::RelayPatchSetMessages(uint64_t instanceId, RealtimeRingBufferWri
             else if (obj->body.otype == urids.patch__Set) // patch_Set is handled elsewhere.
             {
                 maybeStateChanged = true;
-                realtimeRingBufferWriter->AtomOutput(instanceId, obj->atom.size + sizeof(obj->atom), (uint8_t *)obj);
+                if (realtimeRingBufferWriter) // null during an off-thread warm-up run
+                    realtimeRingBufferWriter->AtomOutput(instanceId, obj->atom.size + sizeof(obj->atom), (uint8_t *)obj);
             }
         }
+    }
+    if (realtimeRingBufferWriter == nullptr)
+    {
+        return; // warm-up run: keep the notification pending for the first real block
     }
     if (this->requestStateChangedNotification)
     {

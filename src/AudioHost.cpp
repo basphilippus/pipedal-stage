@@ -20,6 +20,9 @@
 
 #include "PiPedalCommon.hpp"
 #include "AudioHost.hpp"
+#include <cstdlib>
+#include <string>
+#include <time.h>
 #include "util.hpp"
 #include <lv2/atom/atom.h>
 #include "SchedulerPriority.hpp"
@@ -544,6 +547,20 @@ private:
     uint64_t currentSample = 0;
 
     std::atomic<uint64_t> underruns = 0;
+    // rig: preset-swap diagnostics. The RT thread times the first Run() calls of a freshly
+    // swapped pedalboard; the service thread logs them. Also the frame count seen by the RT
+    // thread, for the model-thread warm-up in SetPedalboard().
+    std::atomic<int> postSwapBlocks{0};
+    std::atomic<uint64_t> postSwapFirstNs{0};
+    std::atomic<uint64_t> postSwapMaxNs{0};
+    std::atomic<uint64_t> postSwapTotalNs{0};
+    std::atomic<bool> postSwapReport{false};
+    std::atomic<size_t> rtFrames{64};
+    std::atomic<uint64_t> postSwapHandlerNs{0};   // ReplaceEffect handler duration
+    std::atomic<uint64_t> postSwapMaxCycleNs{0};  // longest whole OnProcess over the 8 blocks
+    std::atomic<int64_t> postSwapWallUs{0};       // CLOCK_REALTIME at the swap, for journal correlation
+    static int64_t WallUs() { struct timespec t; clock_gettime(CLOCK_REALTIME, &t); return (int64_t)t.tv_sec * 1000000 + t.tv_nsec / 1000; }
+    static std::string WallStr(int64_t us) { time_t sec = us / 1000000; struct tm tmv; localtime_r(&sec, &tmv); char b[32]; snprintf(b, sizeof b, "%02d:%02d:%02d.%03d", tmv.tm_hour, tmv.tm_min, tmv.tm_sec, (int)((us % 1000000) / 1000)); return b; }
     std::atomic<std::chrono::system_clock::time_point> lastUnderrunTime =
         std::chrono::system_clock::from_time_t(0);
 
@@ -645,6 +662,16 @@ private:
     size_t vuSamplesPerUpdate = 0;
     int64_t realtimeVuSamplesRemaining = 0;
 
+    void ReportSwapTiming()
+    {
+        if (postSwapReport.exchange(false))
+        {
+            double period = 1000.0 * (double)rtFrames.load() / (double)(sampleRate > 0 ? sampleRate : 48000);
+            Lv2Log::info("Pedalboard swap at %s: handler %.2f ms, first Run %.2f ms, max Run %.2f ms, max cycle %.2f ms over 8 blocks (period %.2f ms)",
+                         WallStr(postSwapWallUs.load()).c_str(), postSwapHandlerNs.load() / 1e6, postSwapFirstNs.load() / 1e6,
+                         postSwapMaxNs.load() / 1e6, postSwapMaxCycleNs.load() / 1e6, period);
+        }
+    }
     void freeRealtimeVuConfiguration()
     {
         if (this->realtimeVuBuffers != nullptr)
@@ -881,8 +908,16 @@ private:
 
                 if (body.effect != nullptr)
                 {
+                    struct timespec tH0, tH1;
+                    clock_gettime(CLOCK_MONOTONIC, &tH0);
+                    postSwapWallUs.store(WallUs(), std::memory_order_relaxed);
                     auto oldValue = this->realtimeActivePedalboard;
                     this->realtimeActivePedalboard = body.effect;
+                    postSwapFirstNs.store(0, std::memory_order_relaxed);
+                    postSwapMaxCycleNs.store(0, std::memory_order_relaxed);
+                    postSwapMaxNs.store(0, std::memory_order_relaxed);
+                    postSwapTotalNs.store(0, std::memory_order_relaxed);
+                    postSwapBlocks.store(8, std::memory_order_relaxed);
 
                     realtimeWriter.EffectReplaced(oldValue);
 
@@ -901,6 +936,8 @@ private:
                         }
                     }
                     realtimeActivePedalboard->UpdateAudioPorts();
+                    clock_gettime(CLOCK_MONOTONIC, &tH1);
+                    postSwapHandlerNs.store((uint64_t)(tH1.tv_sec - tH0.tv_sec) * 1000000000ull + (uint64_t)(tH1.tv_nsec - tH0.tv_nsec), std::memory_order_relaxed);
                 }
                 reEntered = false;
 
@@ -1255,7 +1292,19 @@ private:
         {
             pedalboard->ProcessParameterRequests(pParameterRequests, nframes);
 
+            bool timeIt = postSwapBlocks.load(std::memory_order_relaxed) > 0;
+            struct timespec tRun0, tRun1;
+            if (timeIt) clock_gettime(CLOCK_MONOTONIC, &tRun0);
             pedalboard->Run(inputBuffers, outputBuffers, (uint32_t)nframes, &realtimeWriter);
+            if (timeIt)
+            {
+                clock_gettime(CLOCK_MONOTONIC, &tRun1);
+                uint64_t ns = (uint64_t)(tRun1.tv_sec - tRun0.tv_sec) * 1000000000ull + (uint64_t)(tRun1.tv_nsec - tRun0.tv_nsec);
+                if (postSwapFirstNs.load(std::memory_order_relaxed) == 0) postSwapFirstNs.store(ns, std::memory_order_relaxed);
+                if (ns > postSwapMaxNs.load(std::memory_order_relaxed)) postSwapMaxNs.store(ns, std::memory_order_relaxed);
+                postSwapTotalNs.fetch_add(ns, std::memory_order_relaxed);
+                if (postSwapBlocks.fetch_sub(1, std::memory_order_relaxed) == 1) postSwapReport.store(true, std::memory_order_release);
+            }
             pedalboard->GatherPatchProperties(pParameterRequests);
             pedalboard->GatherPathPatchProperties(this);
 
@@ -1402,6 +1451,9 @@ private:
     }
     virtual void OnProcess(size_t nframes)
     {
+        rtFrames.store(nframes, std::memory_order_relaxed);
+        struct timespec tC0;
+        clock_gettime(CLOCK_MONOTONIC, &tC0);
         try
         {
             float *restrict in, *restrict out;
@@ -1442,6 +1494,13 @@ private:
                 this->underruns = 0;
             }
             this->currentSample += nframes;
+            if (postSwapBlocks.load(std::memory_order_relaxed) >= 0 && postSwapReport.load(std::memory_order_relaxed) == false && postSwapBlocks.load(std::memory_order_relaxed) > 0)
+            {
+                struct timespec tC1;
+                clock_gettime(CLOCK_MONOTONIC, &tC1);
+                uint64_t ns = (uint64_t)(tC1.tv_sec - tC0.tv_sec) * 1000000000ull + (uint64_t)(tC1.tv_nsec - tC0.tv_nsec);
+                if (ns > postSwapMaxCycleNs.load(std::memory_order_relaxed)) postSwapMaxCycleNs.store(ns, std::memory_order_relaxed);
+            }
         }
         catch (const std::exception &e)
         {
@@ -1562,6 +1621,7 @@ public:
                 else if (result == RingBufferStatus::TimedOut)
                 {
                     // timeout.
+                    ReportSwapTiming();
                     if (underruns != lastUnderrunCount)
                     {
                         if (underrunMessagesGiven < 60) // limit how much log file clutter we generate.
@@ -1575,6 +1635,7 @@ public:
                 }
                 else
                 {
+                    ReportSwapTiming();
                     while (true)
                     {
                         size_t space = hostReader.readSpace();
@@ -1968,7 +2029,31 @@ public:
         this->currentPedalboard = pedalboard;
         if (active && pedalboard)
         {
+            int64_t tA0 = WallUs();
             pedalboard->Activate();
+            int64_t tA1 = WallUs();
+            Lv2Log::info("Preset load: Activate %.1f ms, swap queued at %s", (tA1 - tA0) / 1000.0, WallStr(tA1).c_str());
+            // Warm-up: run the new chain on silence here, off the RT thread, so its first RT
+            // block doesn't pay for cold caches / lazy plugin init. Measured on the rig: the
+            // first block of a 7-block chain took 1.6 ms against a 1.33 ms period (one missed
+            // deadline -> ALSA stream restart -> audible hole on every preset change); with the
+            // warm-up it takes 0.05 ms and preset changes are gapless. PIPEDAL_SWAP_WARMUP=0 disables.
+            const char *warm = getenv("PIPEDAL_SWAP_WARMUP");
+            if (!(warm && warm[0] == '0'))
+            {
+                size_t n = rtFrames.load();
+                if (n == 0 || n > 8192) n = 64;
+                std::vector<float> zeros(n, 0.0f);
+                std::vector<float> outA(n), outB(n), outC(n);
+                float *in[3] = {zeros.data(), zeros.data(), zeros.data()};
+                float *out[3] = {outA.data(), outB.data(), outC.data()};
+                pedalboard->ResetAtomBuffers();
+                pedalboard->UpdateAudioPorts(); // the RT swap handler does this before the first Run; without it the ports are unconnected
+                for (int i = 0; i < 4; ++i)
+                {
+                    pedalboard->Run(in, out, (uint32_t)n, nullptr);
+                }
+            }
             this->activePedalboards.push_back(pedalboard);
             hostWriter.ReplaceEffect(pedalboard.get());
         }

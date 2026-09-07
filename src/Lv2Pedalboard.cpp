@@ -536,7 +536,7 @@ bool Lv2Pedalboard::Run(float **inputBuffers, float **outputBuffers, uint32_t sa
     for (size_t i = 0; i < this->effects.size(); ++i)
     {
         IEffect *effect = effects[i].get();
-        if (effect->HasErrorMessage())
+        if (effect->HasErrorMessage() && ringBufferWriter != nullptr) // null writer: off-thread warm-up run
         {
             ringBufferWriter->WriteLv2ErrorMessage(effect->GetInstanceId(), effect->TakeErrorMessage());
         }
