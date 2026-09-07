@@ -30,6 +30,7 @@ import { PiPedalModel, PiPedalModelFactory, PresetIndex } from './PiPedalModel';
 import { Pedalboard } from './Pedalboard';
 import { snapshotColor, SNAPSHOT_STRIP_SLOTS } from './SnapshotStrip';
 import { STAGE } from './StageTheme';
+import TempoWidget from './TempoWidget';
 
 const PRESET_SLOTS = 4;                 // pedal bottom row: PC 0-3
 const PRESET_COLOR = "#4d8dff";         // pedal shows presets blue
@@ -217,6 +218,7 @@ export default class GigView extends React.Component<GigViewProps, GigViewState>
                         <span style={{ fontFamily: STAGE.displayFont, fontSize: 20, color: snapshotColor(activeSnapshot.color) }}>{activeSnapshot.name}</span>
                     )}
                     <span style={{ flex: "1 1 auto" }} />
+                    <TempoWidget compact />
                     <span style={{ fontFamily: STAGE.displayFont, fontSize: 12, letterSpacing: "0.12em", color: STAGE.textDim }}>SWIPE DOWN TO CLOSE</span>
                 </div>
                 {/* Rows mirror the pedal: presets + pager on top, snapshots below. */}

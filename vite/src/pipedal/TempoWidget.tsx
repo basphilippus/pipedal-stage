@@ -30,10 +30,14 @@ interface TempoWidgetState {
     pulse: number;   // remounts the LED so its animation re-phases on every tap
 }
 
-export default class TempoWidget extends React.Component<{}, TempoWidgetState> {
+interface TempoWidgetProps {
+    compact?: boolean;   // Gig View header: inline readout + dot, no tile frame
+}
+
+export default class TempoWidget extends React.Component<TempoWidgetProps, TempoWidgetState> {
     private model: PiPedalModel;
 
-    constructor(props: {}) {
+    constructor(props: TempoWidgetProps) {
         super(props);
         this.model = PiPedalModelFactory.getInstance();
         this.state = { bpm: this.model.tempo.get(), pulse: 0 };
@@ -55,6 +59,22 @@ export default class TempoWidget extends React.Component<{}, TempoWidgetState> {
         const bpm = this.state.bpm;
         if (!(bpm > 0)) return null;
         const beatSeconds = 60 / bpm;
+        const dotAnimation = `tempoPulse ${beatSeconds}s cubic-bezier(0.2, 0.8, 0.2, 1) infinite`;
+        if (this.props.compact) {
+            return (
+                <div className="tempo-widget tempo-widget-compact" title="Tap tempo"
+                    onClick={(e) => { e.stopPropagation(); this.model.tapTempo(); }}
+                    style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "0 10px", cursor: "pointer", userSelect: "none", WebkitTapHighlightColor: "transparent" }}>
+                    <style>{`@keyframes tempoPulse { 0% { opacity: 1; transform: scale(1.25); } 35% { opacity: 0.25; transform: scale(1); } 100% { opacity: 0.25; transform: scale(1); } }`}</style>
+                    <span key={this.state.pulse} style={{
+                        width: 9, height: 9, borderRadius: "50%", background: STAGE.accent, alignSelf: "center",
+                        boxShadow: `0 0 6px ${STAGE.accent}`, animation: dotAnimation,
+                    }} />
+                    <span style={{ fontFamily: STAGE.displayFont, fontSize: 26, color: STAGE.text, lineHeight: 1 }}>{Math.round(bpm)}</span>
+                    <span style={{ fontFamily: STAGE.displayFont, fontSize: 11, letterSpacing: "0.16em", color: STAGE.textDim }}>BPM</span>
+                </div>
+            );
+        }
         return (
             <div className="tempo-widget" onClick={() => this.model.tapTempo()} title="Tap tempo"
                 style={{
@@ -72,7 +92,7 @@ export default class TempoWidget extends React.Component<{}, TempoWidgetState> {
                     <span key={this.state.pulse} style={{
                         width: 7, height: 7, borderRadius: "50%", background: STAGE.accent,
                         boxShadow: `0 0 6px ${STAGE.accent}`,
-                        animation: `tempoPulse ${beatSeconds}s cubic-bezier(0.2, 0.8, 0.2, 1) infinite`,
+                        animation: dotAnimation,
                     }} />
                     <span style={{ fontFamily: STAGE.displayFont, fontSize: 10, letterSpacing: "0.2em", color: STAGE.textDim }}>TAP</span>
                 </div>
