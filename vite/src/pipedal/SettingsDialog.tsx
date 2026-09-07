@@ -19,6 +19,8 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import React, { SyntheticEvent, Component } from 'react';
+import { STAGE } from './StageTheme';
+import { isStageTheme } from './DarkMode';
 import Switch from "@mui/material/Switch";
 import ChannelRouterSettings from './ChannelRouterSettings';
 import ChannelRouterSettingsDialog from './ChannelRouterSettingsDialog';
@@ -666,7 +668,7 @@ const SettingsDialog = withStyles(
                                     )}
 
                                 <div>
-                                    <Typography className={classes.sectionHead} display="block" variant="caption" color="secondary">
+                                    <Typography className={classes.sectionHead} display="block" variant="caption" color={isStageTheme() ? "primary" : "secondary"} style={isStageTheme() ? { fontFamily: STAGE.displayFont, letterSpacing: "0.14em", opacity: 0.85 } : undefined}>
                                         STATUS
                                     </Typography>
                                     {(!isConfigValid) ?
@@ -697,7 +699,7 @@ const SettingsDialog = withStyles(
                                     )
                                 }
                                 <Divider />
-                                <Typography className={classes.sectionHead} display="block" variant="caption" color="secondary">
+                                <Typography className={classes.sectionHead} display="block" variant="caption" color={isStageTheme() ? "primary" : "secondary"} style={isStageTheme() ? { fontFamily: STAGE.displayFont, letterSpacing: "0.14em", opacity: 0.85 } : undefined}>
                                     AUDIO
                                 </Typography>
                                 <ButtonBase className={classes.setting} onClick={() => this.handleJackServerSettings()}
@@ -780,7 +782,7 @@ const SettingsDialog = withStyles(
                                     */}
                                 <Divider />
                                 <div >
-                                    <Typography className={classes.sectionHead} display="block" variant="caption" color="secondary">MIDI</Typography>
+                                    <Typography className={classes.sectionHead} display="block" variant="caption" color={isStageTheme() ? "primary" : "secondary"} style={isStageTheme() ? { fontFamily: STAGE.displayFont, letterSpacing: "0.14em", opacity: 0.85 } : undefined}>MIDI</Typography>
                                     <ButtonBase className={classes.setting} disabled={!isConfigValid} onClick={() => this.handleMidiSelection()}  >
                                         <SelectHoverBackground selected={false} showHover={true} />
                                         <div style={{ width: "100%" }}>
@@ -805,7 +807,7 @@ const SettingsDialog = withStyles(
                             {(!this.props.onboarding) &&
                                 (
                                     <div>
-                                        <Typography className={classes.sectionHead} display="block" variant="caption" color="secondary">
+                                        <Typography className={classes.sectionHead} display="block" variant="caption" color={isStageTheme() ? "primary" : "secondary"} style={isStageTheme() ? { fontFamily: STAGE.displayFont, letterSpacing: "0.14em", opacity: 0.85 } : undefined}>
                                             DISPLAY
                                         </Typography>
                                         <ButtonBase
@@ -923,7 +925,7 @@ const SettingsDialog = withStyles(
                                     <div>
                                         <Divider />
                                         <div >
-                                            <Typography className={classes.sectionHead} display="block" variant="caption" color="secondary">CONNECTION</Typography>
+                                            <Typography className={classes.sectionHead} display="block" variant="caption" color={isStageTheme() ? "primary" : "secondary"} style={isStageTheme() ? { fontFamily: STAGE.displayFont, letterSpacing: "0.14em", opacity: 0.85 } : undefined}>CONNECTION</Typography>
 
                                             {this.state.hasWifiDevice && (
                                                 <ButtonBase
@@ -967,7 +969,7 @@ const SettingsDialog = withStyles(
                             {(!this.props.onboarding) ? (
                                 <div >
                                     <Divider />
-                                    <Typography className={classes.sectionHead} display="block" variant="caption" color="secondary">SYSTEM</Typography>
+                                    <Typography className={classes.sectionHead} display="block" variant="caption" color={isStageTheme() ? "primary" : "secondary"} style={isStageTheme() ? { fontFamily: STAGE.displayFont, letterSpacing: "0.14em", opacity: 0.85 } : undefined}>SYSTEM</Typography>
 
                                     {
                                         this.model.enableAutoUpdate && (

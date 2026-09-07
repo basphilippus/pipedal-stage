@@ -93,6 +93,7 @@ function stageThemeOptions(): Parameters<typeof createTheme>[0] {
             background: { default: STAGE.bg, paper: STAGE.panel },
             text: { primary: STAGE.text, secondary: STAGE.textDim },
             divider: STAGE.border,
+            action: { selected: "rgba(245,165,36,0.14)", selectedOpacity: 0.14, hover: "rgba(245,165,36,0.08)", hoverOpacity: 0.08 },
             actionBar: { main: STAGE.panel, contrastText: STAGE.text },
         },
         components: {

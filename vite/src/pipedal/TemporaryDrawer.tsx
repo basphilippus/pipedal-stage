@@ -27,7 +27,9 @@ import IconButtonEx from './IconButtonEx';
 import Drawer from '@mui/material/Drawer';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Theme } from '@mui/material/styles';
-import {isDarkMode} from './DarkMode';
+import {isDarkMode, isStageTheme} from './DarkMode';
+import { STAGE } from './StageTheme';
+import { ArrowLeft as LucideArrowLeft } from 'lucide-react';
 
 const drawerStyles = (theme: Theme) => {
     return createStyles({
@@ -102,9 +104,16 @@ export const TemporaryDrawer = withStyles(
 
                                     <IconButtonEx tooltip="Back"
                                          style={{ flex: "0 0 auto" }} >
-                                        <ArrowBackIcon style={{ fill: '#666' }} />
+                                        {isStageTheme() ? <LucideArrowLeft size={22} strokeWidth={1.75} style={{ color: STAGE.textDim }} /> : <ArrowBackIcon style={{ fill: '#666' }} />}
                                     </IconButtonEx>
-                                    <img src="img/Pi-Logo-3.png" alt="" style={{height: 36}} />
+                                    {isStageTheme() ? (
+                                        <div style={{ display: "flex", alignItems: "center", gap: 10, height: 36, paddingRight: 12 }}>
+                                            <span style={{ width: 10, height: 10, borderRadius: "50%", background: STAGE.accent, boxShadow: `0 0 8px ${STAGE.accent}` }} />
+                                            <span style={{ fontFamily: STAGE.displayFont, fontSize: 22, letterSpacing: "0.02em", color: STAGE.text }}>PiPedal</span>
+                                        </div>
+                                    ) : (
+                                        <img src="img/Pi-Logo-3.png" alt="" style={{height: 36}} />
+                                    )}
                                 </div>
                                 {this.props.children}
                             </div>
