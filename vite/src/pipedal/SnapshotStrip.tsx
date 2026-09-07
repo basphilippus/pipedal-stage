@@ -236,8 +236,11 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
                     background: snapshot
                         ? (active ? `linear-gradient(180deg, ${color}55 0%, ${color}22 100%), ${STAGE.panel}` : STAGE.panelGradient)
                         : "transparent",
-                    border: snapshot ? `1px solid ${active ? color : STAGE.wire}` : `1px dashed ${STAGE.border}`,
-                    borderLeft: snapshot ? `4px solid ${color}` : `1px dashed ${STAGE.border}`,
+                    // Longhands only (see GigView): `border` + `borderLeft` lets React's style diff
+                    // drop the colour bar after an active -> inactive round trip.
+                    borderStyle: snapshot ? "solid" : "dashed",
+                    borderWidth: snapshot ? "1px 1px 1px 4px" : "1px",
+                    borderColor: snapshot ? `${active ? color : STAGE.wire} ${active ? color : STAGE.wire} ${active ? color : STAGE.wire} ${color}` : STAGE.border,
                     boxShadow: snapshot
                         ? (active ? `${STAGE.innerHighlight}, ${STAGE.shadow}, 0 0 14px 0 ${color}40` : `${STAGE.innerHighlight}, ${STAGE.shadow}`)
                         : "none",
