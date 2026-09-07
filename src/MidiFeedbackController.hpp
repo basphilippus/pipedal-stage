@@ -43,6 +43,7 @@
 //   header:     F0 7D 50 50 01
 //   SET_SWITCH:   01 <cc 0-119> <channel 0-15> <color 0-8> <labelLen 0-16> <ascii...> F7
 //   CLEAR_ALL:    02 F7
+//   CLEAR_SWITCH: 06 <cc 0-119> <channel 0-15> F7
 //   SET_PC_LABEL: 03 <program 0-127> <labelLen 0-16> <ascii...> F7
 //   SET_BANNER:   04 <labelLen 0-16> <ascii...> F7
 //   SET_TEMPO:    05 <bpm*10 LSB> <bpm*10 MSB> <flags: bit0 = beat indicator on> F7
@@ -162,6 +163,7 @@ namespace pipedal
 
         std::vector<uint8_t> MakeSetSwitchSysEx(const BypassBinding &binding) const;
         static std::vector<uint8_t> MakeClearAllSysEx();
+        static std::vector<uint8_t> MakeClearSwitchSysEx(uint8_t channel, uint8_t cc);
         static std::vector<uint8_t> MakePcLabelSysEx(uint8_t program, const std::string &name);
         static std::vector<uint8_t> MakeBannerSysEx(const std::string &name);
         static std::vector<uint8_t> MakeTempoSysEx(double bpm, bool inUse);

@@ -43,6 +43,7 @@ namespace
     constexpr uint8_t SYSEX_VERSION = 0x01;
     constexpr uint8_t SYSEX_CMD_SET_SWITCH = 0x01;
     constexpr uint8_t SYSEX_CMD_CLEAR_ALL = 0x02;
+    constexpr uint8_t SYSEX_CMD_CLEAR_SWITCH = 0x06; // <cc> <channel>: restore one switch's config label/colour
     constexpr uint8_t SYSEX_CMD_SET_PC_LABEL = 0x03;
     constexpr uint8_t SYSEX_CMD_SET_BANNER = 0x04; // active preset name, independent of the key page
     constexpr uint8_t SYSEX_CMD_SET_TEMPO = 0x05;  // bpm*10 as 14-bit LSB,MSB, flags (bit0 = a synced knob is active: show the beat)
@@ -350,6 +351,12 @@ std::vector<uint8_t> MidiFeedbackController::MakeClearAllSysEx()
     return {0xF0, SYSEX_MFR_ID, SYSEX_TAG_0, SYSEX_TAG_1, SYSEX_VERSION, SYSEX_CMD_CLEAR_ALL, 0xF7};
 }
 
+std::vector<uint8_t> MidiFeedbackController::MakeClearSwitchSysEx(uint8_t channel, uint8_t cc)
+{
+    return {0xF0, SYSEX_MFR_ID, SYSEX_TAG_0, SYSEX_TAG_1, SYSEX_VERSION, SYSEX_CMD_CLEAR_SWITCH,
+            (uint8_t)(cc & 0x7F), (uint8_t)(channel & 0x0F), 0xF7};
+}
+
 std::vector<uint8_t> MidiFeedbackController::MakePcLabelSysEx(uint8_t program, const std::string &name)
 {
     std::string label = SanitizeLabel(name);
@@ -606,6 +613,10 @@ void MidiFeedbackController::EnqueueFullRefresh()
             event.d1 = (uint8_t)(staleKey & 0x7F);
             event.d2 = 0;
             Enqueue(std::move(event));
+            Event clear;
+            clear.type = EvType::SendSysEx;
+            clear.sysex = MakeClearSwitchSysEx((uint8_t)(staleKey >> 8), (uint8_t)(staleKey & 0x7F));
+            Enqueue(std::move(clear));
         }
     }
     lastRefreshKeys = std::move(currentKeys);
@@ -633,11 +644,10 @@ void MidiFeedbackController::EnqueueFullRefresh()
     }
     EnqueueSnapshotStates(board.selectedSnapshot());
 
-    // Labels and colors.
-    Event clearAll;
-    clearAll.type = EvType::SendSysEx;
-    clearAll.sysex = MakeClearAllSysEx();
-    Enqueue(std::move(clearAll));
+    // Labels and colors. No CLEAR_ALL here: it snapped every key to its config
+    // default (white) for a frame before the new colours arrived. Switches that
+    // lost their binding were restored individually above; the rest are simply
+    // overwritten (the firmware repaints only what changes).
     for (const BypassBinding &binding : bindings)
     {
         Event setSwitch;
