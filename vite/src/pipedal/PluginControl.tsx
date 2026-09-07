@@ -795,13 +795,11 @@ const PluginControl =
 
             }
 
-            modelWeightRing(weights: number[] | undefined, value: number): ReactNode {
+            modelWeightRing(weights: number[] | undefined, value: number, SIZE: number = 46, STROKE_WIDTH: number = 2, style?: React.CSSProperties): ReactNode {
                 if (!weights || weights.length === 0) return null;
                 let uiControl = this.props.uiControl;
                 if (!uiControl) return null;
 
-                const SIZE = 46;
-                const STROKE_WIDTH = 2;
                 let arcs: ReactNode[] = [];
                 let lastValue = 0;
                 for (let i = 0; i < weights.length; ++i) {
@@ -827,7 +825,7 @@ const PluginControl =
                     arcs.push(<path key={i} d={pathData} fill="none" stroke="currentColor" strokeWidth={STROKE_WIDTH} opacity={selected ? 0.66 : 0.2} />);
                 }
                 return (
-                    <svg viewBox={"0 0 " + SIZE + " " + SIZE} style={{ width: SIZE, height: SIZE }}>
+                    <svg viewBox={"0 0 " + SIZE + " " + SIZE} style={{ width: SIZE, height: SIZE, ...style }}>
                         {
                             arcs
                         }
@@ -1163,6 +1161,26 @@ const PluginControl =
 
 
                                                 />
+                                            </ControlTooltip>
+                                        </div>
+                                    ) : (stage && this.props.options?.slimmableWeights && this.props.options.slimmableWeights.length > 0) ? (
+                                        <div style={{ flex: "0 1 auto" }}>
+                                            <ControlTooltip uiControl={control}
+                                                valueTooltip={this.state.previewValue}>
+                                                <div style={{ position: "relative", width: STAGE_DIAL_RING + 10, height: STAGE_DIAL_RING + 10, margin: -5, display: "grid", placeItems: "center" }}>
+                                                    {/* model-size segments as a thin ring just outside the knob's track */}
+                                                    {this.modelWeightRing(this.props.options.slimmableWeights, this.props.value, STAGE_DIAL_RING + 10, 2,
+                                                        { position: "absolute", left: 0, top: 0, color: STAGE.accent, pointerEvents: "none" })}
+                                                    <StageKnob ref={this.imgRef}
+                                                        size={STAGE_DIAL_RING} capSize={STAGE_DIAL_CAP}
+                                                        range={control.valueToRange(value)}
+                                                        accent={this.props.theme.palette.primary.main}
+                                                        onTouchStart={this.onTouchStart} onTouchMove={this.onTouchMove}
+                                                        onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp}
+                                                        onPointerMove={this.onPointerMove}
+                                                        onDrag={this.onDrag}
+                                                    />
+                                                </div>
                                             </ControlTooltip>
                                         </div>
                                     ) : (this.props.options?.slimmableWeights && this.props.options.slimmableWeights.length > 0) ? (

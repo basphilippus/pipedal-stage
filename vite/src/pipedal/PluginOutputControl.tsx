@@ -26,7 +26,27 @@ import { withStyles } from "tss-react/mui";
 import { UiControl } from './Lv2Plugin';
 import Typography from '@mui/material/Typography';
 import { PiPedalModel, PiPedalModelFactory, MonitorPortHandle, State } from './PiPedalModel';
-import { isDarkMode } from './DarkMode';
+import { isDarkMode, isStageTheme } from './DarkMode';
+import { STAGE } from './StageTheme';
+
+// Stage theme: meter/LED colours and the dark "well" the meters sit in.
+const STAGE_WELL = "#0b0c0e";
+function stageVuColor(stock: string): string {
+    switch (stock.toUpperCase()) {
+        case "#F00": return "#ff4d4d";
+        case "#FF0": return "#f5d64d";
+        case "#0C0": return "#3ddc84";
+        default: return stock;
+    }
+}
+function stageLedColor(name: string): string {
+    let n = name.toLowerCase();
+    if (n.includes("green")) return "#3ddc84";
+    if (n.includes("blue")) return "#4d8dff";
+    if (n.includes("yellow")) return "#f5d64d";
+    return "#ff4d4d";
+}
+const stageWellStyle: React.CSSProperties = { background: STAGE_WELL, border: `1px solid ${STAGE.border}`, borderRadius: 3, boxSizing: "content-box" };
 import GxTunerControl from './GxTunerControl';
 import Units from './Units';
 import ControlTooltip from './ControlTooltip';
@@ -450,12 +470,12 @@ const PluginOutputControl =
 
                             <div className={classes.midSection}
                                 style={{ flex: "1 1 1", display: "flex", justifyContent: "center", alignItems: "start", flexFlow: "row nowrap" }}>
-                                <div style={{ width: this.PROGRESS_WIDTH + 2, height: 12, marginLeft: 8, marginRight: 8, background: "#181818", }}>
+                                <div style={{ width: this.PROGRESS_WIDTH + 2, height: 12, marginLeft: 8, marginRight: 8, background: "#181818", ...(isStageTheme() ? stageWellStyle : {}) }}>
                                     <div style={{
                                         height: 8, width: this.PROGRESS_WIDTH, overflow: "hidden", position: "absolute",
-                                        margin: "1px 1px 1px 1px", background: "#282828"
+                                        margin: "1px 1px 1px 1px", background: isStageTheme() ? STAGE_WELL : "#282828"
                                     }}>
-                                        <div ref={this.progressRef} style={{ height: 10, width: this.PROGRESS_WIDTH, position: "absolute", marginTop: 0, background: "#0C0" }} />
+                                        <div ref={this.progressRef} style={{ height: 10, width: this.PROGRESS_WIDTH, position: "absolute", marginTop: 0, background: isStageTheme() ? STAGE.accent : "#0C0" }} />
                                         <div style={{
                                             height: 10, width: this.PROGRESS_WIDTH, position: "absolute",
                                             boxShadow: "inset 0px 2px 4px #000D", background: "transparent"
@@ -492,7 +512,7 @@ const PluginOutputControl =
                                 style={{ flex: "1 1 1", display: "flex", justifyContent: "center", alignItems: "start", flexFlow: "row nowrap" }}>
                                 <ControlTooltip uiControl={control}>
 
-                                    <div style={{ width: 8, height: this.DB_VU_HEIGHT + 4, background: "#000", }}>
+                                    <div style={{ width: 8, height: this.DB_VU_HEIGHT + 4, background: "#000", ...(isStageTheme() ? stageWellStyle : {}) }}>
                                         <div style={{ height: this.DB_VU_HEIGHT, width: 4, overflow: "hidden", position: "absolute", margin: 2 }}>
                                             <div style={{ width: 4, height: this.DB_VU_HEIGHT, position: "absolute", left: 0, top: 0 }}>
                                                 {
@@ -504,7 +524,7 @@ const PluginOutputControl =
                                                             <div key={ix}
                                                                 style={{
                                                                     position: "absolute", width: 4, height: (bottom - top),
-                                                                    top: top, left: 0, background: vuColor.color
+                                                                    top: top, left: 0, background: isStageTheme() ? stageVuColor(vuColor.color) : vuColor.color
                                                                 }} />
                                                         );
                                                     })
@@ -512,9 +532,9 @@ const PluginOutputControl =
                                             </div>
 
                                             <div ref={this.dbVuRef} style={{
-                                                width: 4, position: "absolute", marginTop: 0, height: this.VU_HEIGHT, background: "#000"
+                                                width: 4, position: "absolute", marginTop: 0, height: this.VU_HEIGHT, background: isStageTheme() ? STAGE_WELL : "#000"
                                             }} />
-                                            <div ref={this.dbVuTelltaleRef} style={{ width: 4, position: "absolute", marginTop: 100, height: 3, background: "#C00" }} />
+                                            <div ref={this.dbVuTelltaleRef} style={{ width: 4, position: "absolute", marginTop: 100, height: 3, background: isStageTheme() ? "#ff4d4d" : "#C00" }} />
                                         </div>
                                     </div>
                                 </ControlTooltip>
@@ -550,9 +570,9 @@ const PluginOutputControl =
                             <div className={classes.midSection}
                                 style={{ display: "flex", justifyContent: "center", alignItems: "start", flexFlow: "row nowrap" }}>
                                 <ControlTooltip uiControl={control}>
-                                    <div style={{ width: 8, height: this.VU_HEIGHT + 4, background: "#000", }}>
+                                    <div style={{ width: 8, height: this.VU_HEIGHT + 4, background: "#000", ...(isStageTheme() ? stageWellStyle : {}) }}>
                                         <div style={{ height: this.VU_HEIGHT, overflow: "hidden", position: "absolute", margin: 2 }}>
-                                            <div ref={this.vuRef} style={{ width: 4, height: this.VU_HEIGHT, background: "#0C0", }} />
+                                            <div ref={this.vuRef} style={{ width: 4, height: this.VU_HEIGHT, background: isStageTheme() ? "#3ddc84" : "#0C0", }} />
                                         </div>
                                     </div>
                                 </ControlTooltip>
@@ -597,12 +617,14 @@ const PluginOutputControl =
                                     display: "flex", justifyContent: "center", alignItems: "center", flexFlow: "row nowrap",
                                 }}>
                                 <div style={{
-                                    width: 12, height: 12, background: isDarkMode() ? "#111" :
-                                        "#444", borderRadius: 5, position: "relative"
+                                    width: 12, height: 12, background: isStageTheme() ? STAGE_WELL : isDarkMode() ? "#111" : "#444",
+                                    border: isStageTheme() ? `1px solid ${STAGE.border}` : undefined, boxSizing: "border-box",
+                                    borderRadius: 6, position: "relative"
                                 }}>
                                     <div ref={this.lampRef} style={{
                                         width: 8, height: 8,
-                                        background: ledGradient,
+                                        background: isStageTheme() ? stageLedColor(this.props.uiControl.pipedal_ledColor) : ledGradient,
+                                        boxShadow: isStageTheme() ? `0 0 6px ${stageLedColor(this.props.uiControl.pipedal_ledColor)}` : undefined,
                                         opacity: 0, borderRadius: 3, margin: 2, position: "absolute"
                                     }} />
                                 </div>

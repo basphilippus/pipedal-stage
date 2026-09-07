@@ -18,6 +18,8 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import React from 'react';
+import { isStageTheme } from './DarkMode';
+import { STAGE } from './StageTheme';
 import { Theme } from '@mui/material/styles';
 
 import WithStyles from './WithStyles';
@@ -253,11 +255,11 @@ const ToobFrequencyResponseView =
             currentPath: string = "";
 
             majorGridLine(x0: number, y0: number, x1: number, y1: number): React.ReactNode {
-                return (<line key={"l" + this.nextKey++} x1={x0} y1={y0} x2={x1} y2={y1} fill='none' stroke="#FFF" strokeWidth="0.75" opacity="1" />);
+                return (<line key={"l" + this.nextKey++} x1={x0} y1={y0} x2={x1} y2={y1} fill='none' stroke={isStageTheme() ? "#3a3d44" : "#FFF"} strokeWidth="0.75" opacity="1" />);
             }
 
             gridLine(x0: number, y0: number, x1: number, y1: number): React.ReactNode {
-                return (<line key={"l" + this.nextKey++} x1={x0} y1={y0} x2={x1} y2={y1} fill='none' stroke="#FFF" strokeWidth="0.25" opacity="1" />);
+                return (<line key={"l" + this.nextKey++} x1={x0} y1={y0} x2={x1} y2={y1} fill='none' stroke={isStageTheme() ? "#2a2c31" : "#FFF"} strokeWidth={isStageTheme() ? "0.5" : "0.25"} opacity="1" />);
             }
             grid(): React.ReactNode[] {
                 let result: React.ReactNode[] = [];
@@ -315,8 +317,8 @@ const ToobFrequencyResponseView =
 
                 const classes = withStyles.getClasses(this.props);
                 return (
-                    <div className={classes.frame} style={{width: xMax }} >
-                        <svg width={xMax} height={PLOT_HEIGHT} viewBox={"0 0 " + xMax + " " + PLOT_HEIGHT} stroke="#0F8" fill="none" strokeWidth="2.5" opacity="0.6">
+                    <div className={classes.frame} style={{ width: xMax, ...(isStageTheme() ? { background: "#0b0c0e", boxShadow: "none", border: `1px solid ${STAGE.border}`, borderRadius: 10 } : {}) }} >
+                        <svg width={xMax} height={PLOT_HEIGHT} viewBox={"0 0 " + xMax + " " + PLOT_HEIGHT} stroke={isStageTheme() ? STAGE.accent : "#0F8"} fill="none" strokeWidth="2.5" opacity={isStageTheme() ? "0.95" : "0.6"}>
                             {this.grid()}
                             <path d={this.state.path} ref={this.pathRef} />
                         </svg>
