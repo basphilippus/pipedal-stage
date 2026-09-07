@@ -45,7 +45,7 @@
 //   CLEAR_ALL:    02 F7
 //   SET_PC_LABEL: 03 <program 0-127> <labelLen 0-16> <ascii...> F7
 //   SET_BANNER:   04 <labelLen 0-16> <ascii...> F7
-//   SET_TEMPO:    05 <bpm*10 LSB> <bpm*10 MSB> F7
+//   SET_TEMPO:    05 <bpm*10 LSB> <bpm*10 MSB> <flags: bit0 = beat indicator on> F7
 // The receiving firmware ignores frames not starting with the full header.
 
 namespace pipedal
@@ -164,7 +164,10 @@ namespace pipedal
         static std::vector<uint8_t> MakeClearAllSysEx();
         static std::vector<uint8_t> MakePcLabelSysEx(uint8_t program, const std::string &name);
         static std::vector<uint8_t> MakeBannerSysEx(const std::string &name);
-        static std::vector<uint8_t> MakeTempoSysEx(double bpm);
+        static std::vector<uint8_t> MakeTempoSysEx(double bpm, bool inUse);
+        bool TempoInUse() const;
+        void EnqueueTempo();
+        std::unordered_map<int64_t, bool> tempoTargets; // instanceId of blocks with a Tap Tempo binding -> enabled
         void EnqueuePresetLabels(const PresetIndex &presets); // labels + lit key for the current preset page
 
         void SenderThreadProc(std::stop_token stopToken);

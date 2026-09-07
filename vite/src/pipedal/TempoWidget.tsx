@@ -24,10 +24,23 @@
 import React from 'react';
 import { PiPedalModel, PiPedalModelFactory } from './PiPedalModel';
 import { STAGE } from './StageTheme';
+import { Pedalboard } from './Pedalboard';
+import MidiBinding from './MidiBinding';
+
+// True when a non-bypassed block in the pedalboard has a tempo-synced knob.
+export function tempoInUse(pedalboard: Pedalboard | undefined): boolean {
+    if (!pedalboard) return false;
+    for (let item of pedalboard.itemsGenerator()) {
+        if (!item.isEnabled || !item.midiBindings) continue;
+        if (item.midiBindings.some((b) => b.bindingType === MidiBinding.BINDING_TYPE_TAP_TEMPO)) return true;
+    }
+    return false;
+}
 
 interface TempoWidgetState {
     bpm: number;
     pulse: number;   // remounts the LED so its animation re-phases on every tap
+    inUse: boolean;  // beat dot only when the preset actually follows the tempo
 }
 
 interface TempoWidgetProps {
@@ -40,26 +53,32 @@ export default class TempoWidget extends React.Component<TempoWidgetProps, Tempo
     constructor(props: TempoWidgetProps) {
         super(props);
         this.model = PiPedalModelFactory.getInstance();
-        this.state = { bpm: this.model.tempo.get(), pulse: 0 };
+        this.state = { bpm: this.model.tempo.get(), pulse: 0, inUse: tempoInUse(this.model.pedalboard.get()) };
         this.onTempo = this.onTempo.bind(this);
         this.onTap = this.onTap.bind(this);
+        this.onPedalboard = this.onPedalboard.bind(this);
     }
     componentDidMount() {
         this.model.tempo.addOnChangedHandler(this.onTempo);
         this.model.tempoTapCount.addOnChangedHandler(this.onTap);
+        this.model.pedalboard.addOnChangedHandler(this.onPedalboard);
     }
     componentWillUnmount() {
         this.model.tempo.removeOnChangedHandler(this.onTempo);
         this.model.tempoTapCount.removeOnChangedHandler(this.onTap);
+        this.model.pedalboard.removeOnChangedHandler(this.onPedalboard);
     }
     private onTempo(bpm: number) { this.setState({ bpm: bpm }); }
     private onTap() { this.setState((s) => ({ pulse: s.pulse + 1 })); }
+    private onPedalboard(pb: Pedalboard) { this.setState({ inUse: tempoInUse(pb) }); }
 
     render() {
         const bpm = this.state.bpm;
         if (!(bpm > 0)) return null;
         const beatSeconds = 60 / bpm;
-        const dotAnimation = `tempoPulse ${beatSeconds}s cubic-bezier(0.2, 0.8, 0.2, 1) infinite`;
+        const dotAnimation = this.state.inUse ? `tempoPulse ${beatSeconds}s cubic-bezier(0.2, 0.8, 0.2, 1) infinite` : "none";
+        const dotColor = this.state.inUse ? STAGE.accent : STAGE.border;
+        const dotGlow = this.state.inUse ? `0 0 6px ${STAGE.accent}` : "none";
         if (this.props.compact) {
             return (
                 <div className="tempo-widget tempo-widget-compact" title="Tap tempo"
@@ -67,8 +86,8 @@ export default class TempoWidget extends React.Component<TempoWidgetProps, Tempo
                     style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "0 10px", cursor: "pointer", userSelect: "none", WebkitTapHighlightColor: "transparent" }}>
                     <style>{`@keyframes tempoPulse { 0% { opacity: 1; transform: scale(1.25); } 35% { opacity: 0.25; transform: scale(1); } 100% { opacity: 0.25; transform: scale(1); } }`}</style>
                     <span key={this.state.pulse} style={{
-                        width: 9, height: 9, borderRadius: "50%", background: STAGE.accent, alignSelf: "center",
-                        boxShadow: `0 0 6px ${STAGE.accent}`, animation: dotAnimation,
+                        width: 9, height: 9, borderRadius: "50%", background: dotColor, alignSelf: "center",
+                        boxShadow: dotGlow, animation: dotAnimation,
                     }} />
                     <span style={{ fontFamily: STAGE.displayFont, fontSize: 26, color: STAGE.text, lineHeight: 1 }}>{Math.round(bpm)}</span>
                     <span style={{ fontFamily: STAGE.displayFont, fontSize: 11, letterSpacing: "0.16em", color: STAGE.textDim }}>BPM</span>
@@ -90,8 +109,8 @@ export default class TempoWidget extends React.Component<TempoWidgetProps, Tempo
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span key={this.state.pulse} style={{
-                        width: 7, height: 7, borderRadius: "50%", background: STAGE.accent,
-                        boxShadow: `0 0 6px ${STAGE.accent}`,
+                        width: 7, height: 7, borderRadius: "50%", background: dotColor,
+                        boxShadow: dotGlow,
                         animation: dotAnimation,
                     }} />
                     <span style={{ fontFamily: STAGE.displayFont, fontSize: 10, letterSpacing: "0.2em", color: STAGE.textDim }}>TAP</span>

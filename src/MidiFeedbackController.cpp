@@ -45,7 +45,7 @@ namespace
     constexpr uint8_t SYSEX_CMD_CLEAR_ALL = 0x02;
     constexpr uint8_t SYSEX_CMD_SET_PC_LABEL = 0x03;
     constexpr uint8_t SYSEX_CMD_SET_BANNER = 0x04; // active preset name, independent of the key page
-    constexpr uint8_t SYSEX_CMD_SET_TEMPO = 0x05;  // bpm*10 as 14-bit LSB,MSB; firmware shows it and self-times a beat dot
+    constexpr uint8_t SYSEX_CMD_SET_TEMPO = 0x05;  // bpm*10 as 14-bit LSB,MSB, flags (bit0 = a synced knob is active: show the beat)
 
     // LED color codes shared with the controller firmware.
     constexpr uint8_t COLOR_WHITE = 0;
@@ -260,12 +260,7 @@ void MidiFeedbackController::Start()
                 lastProgramSent = -1; // force PC resend so the preset banner populates
                 lastSentPcLabels.clear(); // device may have rebooted; resend names
                 lastBannerSent = "\x01";  // impossible name: force a banner resend
-                {
-                    Event tempo;
-                    tempo.type = EvType::SendSysEx;
-                    tempo.sysex = MakeTempoSysEx(model.GetTempo());
-                    Enqueue(std::move(tempo));
-                }
+                EnqueueTempo();
                 PresetIndex presets;
                 model.GetPresets(&presets);
                 OnPresetsChanged(CLIENT_ID, presets);
@@ -482,17 +477,35 @@ void MidiFeedbackController::OnTempoChanged(double bpm)
     if (value <= 0) return;
     Event event;
     event.type = EvType::SendSysEx;
-    event.sysex = MakeTempoSysEx(value);
+    event.sysex = MakeTempoSysEx(value, TempoInUse());
     Enqueue(std::move(event));
 }
 
-std::vector<uint8_t> MidiFeedbackController::MakeTempoSysEx(double bpm)
+std::vector<uint8_t> MidiFeedbackController::MakeTempoSysEx(double bpm, bool inUse)
 {
     long raw = std::lround(bpm * 10.0);
     if (raw < 0) raw = 0;
     if (raw > 16383) raw = 16383;
     return {0xF0, SYSEX_MFR_ID, SYSEX_TAG_0, SYSEX_TAG_1, SYSEX_VERSION, SYSEX_CMD_SET_TEMPO,
-            (uint8_t)(raw & 0x7F), (uint8_t)((raw >> 7) & 0x7F), 0xF7};
+            (uint8_t)(raw & 0x7F), (uint8_t)((raw >> 7) & 0x7F), (uint8_t)(inUse ? 1 : 0), 0xF7};
+}
+
+// True when some non-bypassed block in the current preset has a tempo-synced port.
+bool MidiFeedbackController::TempoInUse() const
+{
+    for (const auto &t : tempoTargets)
+    {
+        if (t.second) return true;
+    }
+    return false;
+}
+
+void MidiFeedbackController::EnqueueTempo()
+{
+    Event event;
+    event.type = EvType::SendSysEx;
+    event.sysex = MakeTempoSysEx(model.GetTempo(), TempoInUse());
+    Enqueue(std::move(event));
 }
 
 void MidiFeedbackController::OnPresetPageChanged(int64_t page)
@@ -523,6 +536,22 @@ void MidiFeedbackController::EnqueueBindingState(const BypassBinding &binding, b
 
 void MidiFeedbackController::RebuildBindings(const Pedalboard &pedalboard)
 {
+    // tempo consumers: blocks with a Tap Tempo binding, and whether they are enabled
+    tempoTargets.clear();
+    {
+        Pedalboard copy = pedalboard;
+        for (PedalboardItem *item : copy.GetAllPlugins())
+        {
+            for (const MidiBinding &b : item->midiBindings())
+            {
+                if (b.bindingType() == BINDING_TYPE_TAP_TEMPO)
+                {
+                    tempoTargets[item->instanceId()] = item->isEnabled();
+                    break;
+                }
+            }
+        }
+    }
     bindings.clear();
     // GetAllPlugins flattens split-chain children; it is non-const, so walk a copy.
     Pedalboard board = pedalboard;
@@ -714,6 +743,13 @@ void MidiFeedbackController::OnSystemMidiBindingsChanged(const std::vector<MidiB
 
 void MidiFeedbackController::OnItemEnabledChanged(int64_t clientId, int64_t pedalItemId, bool enabled)
 {
+    auto t = tempoTargets.find(pedalItemId);
+    if (t != tempoTargets.end() && t->second != enabled)
+    {
+        bool before = TempoInUse();
+        t->second = enabled;
+        if (before != TempoInUse()) EnqueueTempo(); // beat indicator follows bypass / snapshots
+    }
     for (const BypassBinding &binding : bindings)
     {
         if (binding.instanceId == pedalItemId && binding.symbol == BYPASS_SYMBOL)
@@ -750,8 +786,10 @@ void MidiFeedbackController::OnMidiValueChanged(int64_t instanceId, const std::s
 
 void MidiFeedbackController::OnPedalboardChanged(int64_t clientId, const Pedalboard &pedalboard)
 {
+    bool before = TempoInUse();
     RebuildBindings(pedalboard);
     EnqueueFullRefresh();
+    if (before != TempoInUse()) EnqueueTempo();
     // a tuner block may have appeared/disappeared muted (tuner mode without a tuner in the preset)
     PresetIndex presets;
     model.GetPresets(&presets);
