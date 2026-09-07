@@ -104,8 +104,11 @@ export default class GigView extends React.Component<GigViewProps, GigViewState>
                     background: dim ? "transparent"
                         : active ? `linear-gradient(180deg, ${color} 0%, ${color}cc 100%)`
                         : STAGE.panelGradient,
-                    border: dim ? `1px dashed ${STAGE.border}` : `1px solid ${active ? color : STAGE.wire}`,
-                    borderTop: dim ? `1px dashed ${STAGE.border}` : `5px solid ${color}`,
+                    // Longhands only: mixing the `border` shorthand with `borderTop` lets React's
+                    // style diff drop the colour bar after an active -> inactive round trip.
+                    borderStyle: dim ? "dashed" : "solid",
+                    borderWidth: dim ? "1px" : "5px 1px 1px 1px",
+                    borderColor: dim ? STAGE.border : `${color} ${active ? color : STAGE.wire} ${active ? color : STAGE.wire} ${active ? color : STAGE.wire}`,
                     boxShadow: dim ? "none" : (active ? `${STAGE.shadow}, 0 0 28px 0 ${color}66` : `${STAGE.innerHighlight}, ${STAGE.shadow}`),
                     userSelect: "none", WebkitTapHighlightColor: "transparent", touchAction: "none",
                     transition: `border-color ${STAGE.ease}, box-shadow ${STAGE.ease}, background ${STAGE.ease}`,
