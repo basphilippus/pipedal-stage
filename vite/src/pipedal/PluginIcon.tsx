@@ -373,7 +373,7 @@ const PluginIcon = withStyles((props: PluginIconProps) => {
     const { pluginType, opacity, pluginMissing,color } = props;
     const classes = withStyles.getClasses(props);
 
-    let pluginMissing_: boolean = pluginMissing ?? false;
+    let pluginMissing_: boolean = (pluginMissing ?? false) && pluginType !== PluginType.None; // an empty slot has no plugin by design
 
     let size: number = 24;
     if (props.size) size = props.size;

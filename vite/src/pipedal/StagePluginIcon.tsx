@@ -155,6 +155,10 @@ const G: { [k: string]: Glyph } = {
     error: <>
         <path d="M12 4l9 16H3z" /><path d="M12 10v4M12 17v.5" />
     </>,
+    // Empty slot: dashed ring with a plus.
+    empty: <>
+        <circle cx="12" cy="12" r="8.5" strokeDasharray="3 3" /><path d="M12 8.5v7M8.5 12h7" />
+    </>,
 };
 
 const FAMILY_COLOR: { [k: string]: string } = {
@@ -164,7 +168,7 @@ const FAMILY_COLOR: { [k: string]: string } = {
     delay: "#4d8dff", reverb: "#4d8dff",
     mod: "#3ddc84", pitch: "#c06cff", tuner: "#e6e8ec", spectral: "#c06cff",
     mixer: "#cfd3d9", osc: "#cfd3d9", loop: "#3ddc84", split: "#cfd3d9", util: "#cfd3d9",
-    terminal: "#5a5e66", error: "#ff4d4d",
+    terminal: "#5a5e66", error: "#ff4d4d", empty: "#5a5e66",
 };
 
 // Many LV2 plugins are typed as plain "Plugin"; the name usually says what it is.
@@ -209,6 +213,7 @@ function familyByType(type: PluginType): string {
         case PluginType.MixerPlugin: return "mixer";
         case PluginType.OscillatorPlugin: case PluginType.GeneratorPlugin: case PluginType.InstrumentPlugin: return "osc";
         case PluginType.ErrorPlugin: case PluginType.InvalidPlugin: return "error";
+        case PluginType.None: return "empty";
         default: return "util";
     }
 }
@@ -235,6 +240,7 @@ function glyphFor(type: PluginType): Glyph {
         case PluginType.MixerPlugin: return G.mixer;
         case PluginType.OscillatorPlugin: case PluginType.GeneratorPlugin: case PluginType.InstrumentPlugin: return G.osc;
         case PluginType.ErrorPlugin: case PluginType.InvalidPlugin: return G.error;
+        case PluginType.None: return G.empty;
         default: return G.util;
     }
 }
