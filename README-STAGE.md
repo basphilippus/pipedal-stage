@@ -1,5 +1,17 @@
 # PiPedal Stage (unofficial build)
 
+![Main page: chain tiles, Stage knobs, snapshot strip with tempo tile](docs/stage/shot_main.png)
+
+| Gig View: presets + pager, snapshots | Tempo-sync picker (long-press a knob or hold the encoder) |
+|---|---|
+| ![Gig View](docs/stage/shot_gig.png) | ![Tempo sync picker](docs/stage/shot_tempo_picker.png) |
+
+| Tuner mode (pedal combo or Mute) | Drawer |
+|---|---|
+| ![Tuner mode](docs/stage/shot_tuner.png) | ![Drawer](docs/stage/shot_drawer.png) |
+
+Screenshots: 7" Raspberry Pi Touch Display 2 kiosk (1280×720), Stage theme.
+
 This branch (`stage`) is an **unofficial** build of [PiPedal](https://github.com/rerdavies/pipedal) by
 Robin Davies, maintained by Bas Philippus for a Raspberry Pi 5 guitar rig with a 7" touchscreen and a
 Paint Audio MIDI Captain foot controller. It tracks upstream `main` (currently v2.0.110) and adds:
