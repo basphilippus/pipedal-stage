@@ -75,13 +75,13 @@ export default function TunerOverlay(props: { pedalboard: Pedalboard }) {
                         LISTENING
                     </span>
                 )}
-                <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, minWidth: 120 }}>
+                {pitch.valid && <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, minWidth: 120 }}>
                     <span style={{ fontFamily: STAGE.displayFont, fontSize: 44, lineHeight: 1, color: noteColor }}>{accidental}{octave}</span>
                     <span style={{ fontFamily: STAGE.displayFont, fontSize: 30, lineHeight: 1, letterSpacing: "0.04em",
                         color: pitch.valid ? (pitch.inTune ? IN_TUNE : STAGE.accent) : STAGE.border }}>
                         {centsText}{pitch.valid ? <span style={{ fontSize: 16, marginLeft: 6, color: STAGE.textDim }}>CENTS</span> : ""}
                     </span>
-                </span>
+                </span>}
             </div>
             {/* Bare dial (220x100 CSS px) scaled up; wrapper reserves the scaled box so flex layout stays honest. */}
             <div style={{ width: 220 * TUNER_SCALE, height: 100 * TUNER_SCALE, display: "flex", alignItems: "center", justifyContent: "center" }}>
