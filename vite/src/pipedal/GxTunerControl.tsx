@@ -89,10 +89,17 @@ const NOTES_24TET: string[] = [
 // // eslint-disable-next-line @typescript-eslint/no-unused-vars
 // const NOTES_53TET = ["la","laa","lo","law","ta","teh","te","tu","tuh","ti","tih","to","taw","da","do","di","daw","ro","rih","ra","ru","ruh","reh","re ","ri","raw","ma","meh","me","mu","muh","mi","maa","mo","maw","fe","fa","fih","fu","fuh","fi","se","suh","su","sih","sol","si","saw","lo","leh","le","lu","luh"];
 
+export interface TunerPitchInfo {
+    valid: boolean;
+    name: string;      // e.g. "E2", "" when no signal
+    cents: number;     // signed offset from the note
+    inTune: boolean;   // |cents| < 3
+}
 interface GxTunerControlProps extends WithStyles<typeof styles> {
     instanceId: number;
     valueIsMidi: boolean;
     symbolName?: string;
+    onPitchInfo?: (info: TunerPitchInfo) => void;   // Stage tuner overlay: big note + cents readout
 }
 type GxTunerControlState = {
     pitchInfo: PitchInfo
@@ -230,6 +237,10 @@ const GxTunerControl =
                 this.setState({  
                     pitchInfo: pitchInfo
                 });
+                if (this.props.onPitchInfo) {
+                    let cents = pitchInfo.valid ? pitchInfo.fraction * pitchInfo.semitoneCents : 0;
+                    this.props.onPitchInfo({ valid: pitchInfo.valid, name: pitchInfo.valid ? pitchInfo.name : "", cents: cents, inTune: pitchInfo.valid && Math.abs(cents) < 3 });
+                }
                 if (value <= 0)
                 {
                     this.startAnimationTimer();

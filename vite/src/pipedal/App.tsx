@@ -113,6 +113,10 @@ function stageThemeOptions(): Parameters<typeof createTheme>[0] {
                     'body.osk-visible .snapshot-sheet .snapshot-sheet-extra': { display: 'none !important' }, // beats the inline display:flex
                     '@keyframes stageFadeIn': { from: { opacity: 0, transform: 'translateY(6px)' }, to: { opacity: 1, transform: 'none' } },
                     '[data-stage-fade]': { animation: 'stageFadeIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1)' },
+                    // Touch feedback: tiles and buttons react while pressed (ripples are off in Stage).
+                    '.tempo-widget, .gig-handle, .tempo-sync-chip': { transition: 'transform 90ms ease, filter 90ms ease' },
+                    '.gig-tile:active, .snapshot-tile:active, .tempo-widget:active, .gig-handle:active, .tempo-sync-chip:active': { transform: 'scale(0.97)', filter: 'brightness(1.12)' },
+                    '.MuiButton-root:active, .MuiIconButton-root:active': { filter: 'brightness(1.2)' },
                     '#mainPageControls *, #pedalboardScroll': { scrollbarWidth: 'none' },
                 },
             },

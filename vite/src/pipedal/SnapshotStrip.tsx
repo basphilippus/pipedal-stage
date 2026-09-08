@@ -226,7 +226,7 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
         let color = snapshotColor(snapshot?.color);
         let letter = String.fromCharCode(65 + index); // A, B, C, D = pedal switch names
         return (
-            <div key={index}
+            <div key={index} className="snapshot-tile"
                 onPointerDown={(e) => { e.preventDefault(); this.swipeStartY = e.clientY; this.onPointerDown(index); }}
                 onPointerUp={(e) => this.onPointerUp(index, e)}
                 onPointerCancel={() => this.onPointerCancel()}

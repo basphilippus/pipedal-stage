@@ -112,7 +112,7 @@ export default class GigView extends React.Component<GigViewProps, GigViewState>
                     borderColor: dim ? STAGE.border : `${color} ${active ? color : STAGE.wire} ${active ? color : STAGE.wire} ${active ? color : STAGE.wire}`,
                     boxShadow: dim ? "none" : (active ? `${STAGE.shadow}, 0 0 28px 0 ${color}66` : `${STAGE.innerHighlight}, ${STAGE.shadow}`),
                     userSelect: "none", WebkitTapHighlightColor: "transparent", touchAction: "none",
-                    transition: `border-color ${STAGE.ease}, box-shadow ${STAGE.ease}, background ${STAGE.ease}`,
+                    transition: `border-color ${STAGE.ease}, box-shadow ${STAGE.ease}, background ${STAGE.ease}, transform 90ms ease, filter 90ms ease`,
                     display: "flex", flexDirection: "column", justifyContent: "space-between",
                 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>

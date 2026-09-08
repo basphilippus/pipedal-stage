@@ -23,11 +23,13 @@
 
 import { PiPedalModelFactory } from './PiPedalModel';
 import { Pedalboard, PedalboardItem } from './Pedalboard';
-import GxTunerControl from './GxTunerControl';
+import { useState } from 'react';
+import GxTunerControl, { TunerPitchInfo } from './GxTunerControl';
 import { STAGE } from './StageTheme';
 
 export const TOOB_TUNER_URI = "http://two-play.com/plugins/toob-tuner";
-const TUNER_SCALE = 2.2;
+const TUNER_SCALE = 1.9;
+const IN_TUNE = "#3ddc84";
 
 export function findMutedTuner(pedalboard: Pedalboard): PedalboardItem | null {
     for (let item of pedalboard.itemsGenerator()) {
@@ -41,6 +43,14 @@ export function findMutedTuner(pedalboard: Pedalboard): PedalboardItem | null {
 export default function TunerOverlay(props: { pedalboard: Pedalboard }) {
     let tuner = findMutedTuner(props.pedalboard);
     let model = PiPedalModelFactory.getInstance();
+    const [pitch, setPitch] = useState<TunerPitchInfo>({ valid: false, name: "", cents: 0, inTune: false });
+    // note name -> letter + accidental (the control uses "#" and the flat sign)
+    let m = /^([A-G])([#\u266d]?)(-?\d+)$/.exec(pitch.name);
+    let letter = m ? m[1] : "";
+    let accidental = m ? m[2] : "";
+    let octave = m ? m[3] : "";
+    let centsText = pitch.valid ? (pitch.cents >= 0 ? "+" : "\u2212") + Math.abs(Math.round(pitch.cents)) : "";
+    let noteColor = pitch.valid ? (pitch.inTune ? IN_TUNE : STAGE.text) : STAGE.border;
     return (
         <div className="tuner-overlay" data-open={tuner ? "true" : "false"} aria-hidden={!tuner}
             onClick={() => { if (tuner) model.setPedalboardControl(tuner.instanceId, "MUTE", 0); }}
@@ -50,14 +60,28 @@ export default function TunerOverlay(props: { pedalboard: Pedalboard }) {
                 opacity: tuner ? 1 : 0, pointerEvents: tuner ? "auto" : "none",
                 transition: "opacity 180ms cubic-bezier(0.2, 0.8, 0.2, 1)", userSelect: "none", touchAction: "none",
             }}>
-            <div style={{ fontFamily: STAGE.displayFont, fontSize: 16, letterSpacing: "0.2em", color: STAGE.accent, marginBottom: 28 }}>
+            <div style={{ fontFamily: STAGE.displayFont, fontSize: 16, letterSpacing: "0.2em", color: STAGE.accent, marginBottom: 6 }}>
                 TUNER · OUTPUT MUTED
+            </div>
+            {/* Big note + cents. Green when within 3 cents. */}
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 18, height: 150, marginBottom: 4 }}>
+                <span style={{ fontFamily: STAGE.displayFont, fontSize: 150, lineHeight: 1, color: noteColor, transition: "color 120ms",
+                    textShadow: pitch.inTune ? `0 0 28px ${IN_TUNE}66` : "none", minWidth: 110, textAlign: "right" }}>
+                    {letter || "\u2014"}
+                </span>
+                <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, minWidth: 120 }}>
+                    <span style={{ fontFamily: STAGE.displayFont, fontSize: 44, lineHeight: 1, color: noteColor }}>{accidental}{octave}</span>
+                    <span style={{ fontFamily: STAGE.displayFont, fontSize: 30, lineHeight: 1, letterSpacing: "0.04em",
+                        color: pitch.valid ? (pitch.inTune ? IN_TUNE : STAGE.accent) : STAGE.border }}>
+                        {centsText}{pitch.valid ? <span style={{ fontSize: 16, marginLeft: 6, color: STAGE.textDim }}>CENTS</span> : ""}
+                    </span>
+                </span>
             </div>
             {/* Bare dial (220x100 CSS px) scaled up; wrapper reserves the scaled box so flex layout stays honest. */}
             <div style={{ width: 220 * TUNER_SCALE, height: 100 * TUNER_SCALE, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {tuner && (
                     <div style={{ transform: `scale(${TUNER_SCALE})`, transformOrigin: "center" }}>
-                        <GxTunerControl instanceId={tuner.instanceId} valueIsMidi={false} />
+                        <GxTunerControl instanceId={tuner.instanceId} valueIsMidi={false} onPitchInfo={setPitch} />
                     </div>
                 )}
             </div>
