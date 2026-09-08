@@ -65,10 +65,16 @@ export default function TunerOverlay(props: { pedalboard: Pedalboard }) {
             </div>
             {/* Big note + cents. Green when within 3 cents. */}
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 18, height: 150, marginBottom: 4 }}>
-                <span style={{ fontFamily: STAGE.displayFont, fontSize: 150, lineHeight: 1, color: noteColor, transition: "color 120ms",
-                    textShadow: pitch.inTune ? `0 0 28px ${IN_TUNE}66` : "none", minWidth: 110, textAlign: "right" }}>
-                    {letter || "\u2014"}
-                </span>
+                {pitch.valid ? (
+                    <span style={{ fontFamily: STAGE.displayFont, fontSize: 150, lineHeight: 1, color: noteColor, transition: "color 120ms",
+                        textShadow: pitch.inTune ? `0 0 28px ${IN_TUNE}66` : "none", minWidth: 110, textAlign: "right" }}>
+                        {letter}
+                    </span>
+                ) : (
+                    <span style={{ fontFamily: STAGE.displayFont, fontSize: 14, letterSpacing: "0.3em", color: STAGE.border, alignSelf: "center" }}>
+                        LISTENING
+                    </span>
+                )}
                 <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, minWidth: 120 }}>
                     <span style={{ fontFamily: STAGE.displayFont, fontSize: 44, lineHeight: 1, color: noteColor }}>{accidental}{octave}</span>
                     <span style={{ fontFamily: STAGE.displayFont, fontSize: 30, lineHeight: 1, letterSpacing: "0.04em",
