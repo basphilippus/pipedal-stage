@@ -37,6 +37,7 @@ import { Pedalboard, Snapshot } from './Pedalboard';
 import { colorKeys } from './MaterialColors';
 import { STAGE } from './StageTheme';
 import TempoWidget from './TempoWidget';
+import MarqueeText from './MarqueeText';
 
 export const SNAPSHOT_STRIP_SLOTS = 4;
 const LONG_PRESS_MS = 450;
@@ -266,11 +267,10 @@ export default class SnapshotStrip extends React.Component<SnapshotStripProps, S
                         }} />
                     </span>
                 </div>
-                <div style={{
+                <MarqueeText text={snapshot ? snapshot.name : "—"} style={{
                     marginTop: 2, fontFamily: STAGE.displayFont, fontSize: 17, letterSpacing: "0.02em",
                     color: snapshot ? (active ? STAGE.text : STAGE.textDim) : STAGE.border,
-                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                }}>{snapshot ? snapshot.name : "—"}</div>
+                }} />
             </div>
         );
     }

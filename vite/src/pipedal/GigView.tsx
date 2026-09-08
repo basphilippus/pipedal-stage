@@ -31,6 +31,7 @@ import { Pedalboard } from './Pedalboard';
 import { snapshotColor, SNAPSHOT_STRIP_SLOTS } from './SnapshotStrip';
 import { STAGE } from './StageTheme';
 import TempoWidget from './TempoWidget';
+import MarqueeText from './MarqueeText';
 
 const PRESET_SLOTS = 4;                 // pedal bottom row: PC 0-3
 const PRESET_COLOR = "#4d8dff";         // pedal shows presets blue
@@ -127,12 +128,10 @@ export default class GigView extends React.Component<GigViewProps, GigViewState>
                     )}
                 </div>
                 <div>
-                    <div style={{
+                    <MarqueeText text={label} lines={2} style={{
                         fontFamily: STAGE.displayFont, fontSize: 24, letterSpacing: "0.01em", lineHeight: 1.15,
                         color: dim ? STAGE.border : (active ? "#0e0f11" : STAGE.text),
-                        overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as any,
-                        wordBreak: "break-word",
-                    }}>{label}</div>
+                    }} />
                     {sub && <div style={{ fontFamily: STAGE.bodyFont, fontSize: 13, color: active ? "rgba(14,15,17,0.7)" : STAGE.textDim, marginTop: 4 }}>{sub}</div>}
                 </div>
             </div>
@@ -214,9 +213,7 @@ export default class GigView extends React.Component<GigViewProps, GigViewState>
                     boxShadow: this.props.open ? "0 -8px 30px rgba(0,0,0,0.6)" : "none",
                 }}>
                 <div onClick={() => { if (this.tapAllowed()) this.props.onClose(); }} style={{ display: "flex", alignItems: "baseline", gap: 16, padding: "4px 6px 12px 6px", cursor: "pointer" }}>
-                    <span style={{ fontFamily: STAGE.displayFont, fontSize: 34, letterSpacing: "0.01em", color: STAGE.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        {current ? current.name : ""}
-                    </span>
+                    <MarqueeText text={current ? current.name : ""} style={{ fontFamily: STAGE.displayFont, fontSize: 34, letterSpacing: "0.01em", color: STAGE.text, flex: "0 1 auto", minWidth: 0 }} />
                     {activeSnapshot && (
                         <span style={{ fontFamily: STAGE.displayFont, fontSize: 20, color: snapshotColor(activeSnapshot.color) }}>{activeSnapshot.name}</span>
                     )}
