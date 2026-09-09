@@ -19,6 +19,7 @@
 
 #include "pch.h"
 #include <future>
+#include <filesystem>
 #include <cmath>
 #include <algorithm>
 #include "ServiceConfiguration.hpp"
@@ -447,6 +448,7 @@ void PiPedalModel::Load()
     this->audioHost->SetNotificationCallbacks(this);
 
     this->systemMidiBindings = storage.GetSystemMidiBindings();
+    InitBacklight(); // rig: apply the persisted display brightness
 
     this->audioHost->SetSystemMidiBindings(this->systemMidiBindings);
 
@@ -3760,6 +3762,87 @@ void PiPedalModel::FireTempoPickerEvent(int32_t kind, int32_t delta)
     for (auto &subscriber : subscribers)
     {
         subscriber->OnTempoPickerEvent(kind, delta);
+    }
+}
+
+// ---- display backlight (rig) ---------------------------------------------
+
+void PiPedalModel::InitBacklight()
+{
+    namespace fs = std::filesystem;
+    try
+    {
+        for (const auto &entry : fs::directory_iterator("/sys/class/backlight"))
+        {
+            std::ifstream maxIn(entry.path() / "max_brightness");
+            int32_t maxValue = 0;
+            if (maxIn >> maxValue && maxValue > 0)
+            {
+                backlightPath_ = entry.path().string();
+                backlightMax_ = maxValue;
+                break;
+            }
+        }
+    }
+    catch (const std::exception &) { /* no backlight */ }
+    if (backlightPath_.empty()) return;
+
+    int32_t percent = -1;
+    {
+        std::ifstream f(storage.GetDataRoot() / "config" / "brightness");
+        if (!(f >> percent)) percent = -1;
+    }
+    if (percent < 0)
+    {
+        std::ifstream cur(std::filesystem::path(backlightPath_) / "brightness");
+        int32_t raw = 0;
+        percent = (cur >> raw) ? (int32_t)std::lround(100.0 * raw / backlightMax_) : 50;
+    }
+    brightness_ = std::clamp(percent, 1, 100);
+    SetBrightness(brightness_, false);
+    Lv2Log::info("Backlight: %s (max %d), brightness %d%%", backlightPath_.c_str(), (int)backlightMax_, (int)brightness_);
+}
+
+int32_t PiPedalModel::GetBrightness()
+{
+    std::lock_guard<std::recursive_mutex> guard{mutex};
+    return backlightPath_.empty() ? -1 : brightness_;
+}
+
+void PiPedalModel::SetBrightness(int32_t percent, bool persist)
+{
+    if (backlightPath_.empty()) return;
+    percent = std::clamp(percent, 1, 100);
+    int32_t raw = std::max<int32_t>(1, (int32_t)std::lround(percent * backlightMax_ / 100.0));
+    {
+        std::ofstream out(std::filesystem::path(backlightPath_) / "brightness");
+        if (!out)
+        {
+            Lv2Log::warning("Backlight: cannot write %s/brightness (is pipedald in the video group?)", backlightPath_.c_str());
+            return;
+        }
+        out << raw;
+    }
+    if (persist)
+    {
+        std::lock_guard<std::recursive_mutex> guard{mutex};
+        brightness_ = percent;
+        std::ofstream f(storage.GetDataRoot() / "config" / "brightness");
+        f << percent;
+        FireBrightnessChanged(percent);
+    }
+}
+
+void PiPedalModel::FireBrightnessChanged(int32_t percent)
+{
+    SubscriberList subscribers;
+    {
+        std::lock_guard<std::recursive_mutex> guard{mutex};
+        subscribers = this->subscribers;
+    }
+    for (auto &subscriber : subscribers)
+    {
+        subscriber->OnBrightnessChanged(percent);
     }
 }
 

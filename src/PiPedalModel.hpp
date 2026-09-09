@@ -75,6 +75,7 @@ namespace pipedal
         virtual void OnPresetsChanged(int64_t clientId, const PresetIndex &presets) = 0;
         virtual void OnPresetPageChanged(int64_t page) = 0;
         virtual void OnTempoChanged(double bpm) = 0; // rig: global tap tempo
+        virtual void OnBrightnessChanged(int32_t percent) = 0; // rig: display backlight, 0-100 (-1 = no backlight)
         // rig: tempo-sync picker driven from the pedal encoder. kind: 0 = open/cancel (hold),
         // 1 = step (delta = signed steps), 2 = confirm (push). Only sent while the UI reports the picker open,
         // except kind 0 which always goes out.
@@ -478,6 +479,15 @@ namespace pipedal
         void InsertAutoTuner();
         void RemoveAutoTuner();
         bool tempoPickerOpen_ = false; // reported by the UI (setTempoPickerOpen)
+        // rig: display backlight (/sys/class/backlight/*). Percent persisted in <data>/config/brightness
+        // and re-applied at startup; temporary values (idle dim) are not persisted.
+        std::string backlightPath_;
+        int32_t backlightMax_ = 0;
+        int32_t brightness_ = -1;
+        void InitBacklight();
+        int32_t GetBrightness();
+        void SetBrightness(int32_t percent, bool persist);
+        void FireBrightnessChanged(int32_t percent);
         void SetTempoPickerOpen(bool open);
         void FireTempoPickerEvent(int32_t kind, int32_t delta);
         int64_t presetPage_ = 0;

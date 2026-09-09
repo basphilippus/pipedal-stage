@@ -1789,6 +1789,28 @@ public:
     }
     REGISTER_MESSAGE_HANDLER(setTempoPickerOpen)
 
+    void handle_getBrightness(int replyTo, json_reader *pReader)
+    {
+        Reply(replyTo, "getBrightness", this->model.GetBrightness());
+    }
+    REGISTER_MESSAGE_HANDLER(getBrightness)
+
+    void handle_setBrightness(int replyTo, json_reader *pReader)
+    {
+        int32_t percent = 0;
+        pReader->read(&percent);
+        this->model.SetBrightness(percent, true);
+    }
+    REGISTER_MESSAGE_HANDLER(setBrightness)
+
+    void handle_setTemporaryBrightness(int replyTo, json_reader *pReader)
+    {
+        int32_t percent = 0;
+        pReader->read(&percent);
+        this->model.SetBrightness(percent, false);
+    }
+    REGISTER_MESSAGE_HANDLER(setTemporaryBrightness)
+
     void handle_nextPreset(int replyTo, json_reader *pReader)
     {
         model.NextPreset();
@@ -2412,6 +2434,10 @@ private:
     {
         std::vector<int32_t> body{kind, delta};
         Send("onTempoPickerEvent", body);
+    }
+    virtual void OnBrightnessChanged(int32_t percent)
+    {
+        Send("onBrightnessChanged", percent);
     }
 
     virtual void OnChannelRouterSettingsChanged(int64_t clientId, const ChannelRouterSettings &channelRouterSettings)

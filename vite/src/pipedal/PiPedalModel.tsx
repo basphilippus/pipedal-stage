@@ -586,6 +586,8 @@ export class PiPedalModel //implements PiPedalModel
     tempoTapCount: ObservableProperty<number> = new ObservableProperty<number>(0); // bumps on every tap, incl. the first (un-timed) one
     // Pedal-driven tempo-sync picker: kind 0 = open/cancel (encoder hold), 1 = step (delta), 2 = confirm (push).
     tempoPickerEvent: ObservableProperty<{ seq: number; kind: number; delta: number }> = new ObservableProperty({ seq: 0, kind: -1, delta: 0 });
+    // Display backlight percent (persisted on the server). -1 = no backlight / stock daemon.
+    brightness: ObservableProperty<number> = new ObservableProperty<number>(-1);
     plugin_classes: ObservableProperty<PluginClass> = new ObservableProperty<PluginClass>(new PluginClass());
     jackConfiguration: ObservableProperty<JackConfiguration> = new ObservableProperty<JackConfiguration>(new JackConfiguration());
     jackSettings: ObservableProperty<JackChannelSelection> = new ObservableProperty<JackChannelSelection>(new JackChannelSelection());
@@ -922,6 +924,8 @@ export class PiPedalModel //implements PiPedalModel
             let bpm = body as number; // negative = first tap of a sequence, tempo unchanged
             if (bpm > 0) this.tempo.set(bpm);
             this.tempoTapCount.set(this.tempoTapCount.get() + 1);
+        } else if (message === "onBrightnessChanged") {
+            this.brightness.set(body as number);
         } else if (message === "onTempoPickerEvent") {
             let b = body as number[];
             this.tempoPickerEvent.set({ seq: this.tempoPickerEvent.get().seq + 1, kind: b[0], delta: b[1] });
@@ -1560,6 +1564,11 @@ export class PiPedalModel //implements PiPedalModel
             } catch {
                 this.tempo.set(0); // stock daemon: no global tempo
             }
+            try {
+                this.brightness.set(await this.getWebSocket().request<number>("getBrightness"));
+            } catch {
+                this.brightness.set(-1); // stock daemon / no backlight
+            }
             this.jackServerSettings.set(
                 new JackServerSettings().deserialize(
                     await this.getWebSocket().request<any>("getJackServerSettings")
@@ -1862,6 +1871,12 @@ export class PiPedalModel //implements PiPedalModel
     }
     setTempoPickerOpen(open: boolean) {
         this.webSocket?.send("setTempoPickerOpen", open);
+    }
+    setBrightness(percent: number) {
+        this.webSocket?.send("setBrightness", Math.round(percent));
+    }
+    setTemporaryBrightness(percent: number) {   // idle dim: not persisted
+        this.webSocket?.send("setTemporaryBrightness", Math.round(percent));
     }
     previousPreset() {
         this.webSocket?.send("previousPreset");

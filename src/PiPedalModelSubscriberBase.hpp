@@ -45,6 +45,7 @@ namespace pipedal
         void OnSnapshotModified(int64_t selectedSnapshot, bool modified) override {}
         void OnPresetPageChanged(int64_t page) override {}
     void OnTempoChanged(double bpm) override {}
+    void OnBrightnessChanged(int32_t percent) override {}
     void OnTempoPickerEvent(int32_t kind, int32_t delta) override {}
         void OnSelectedSnapshotChanged(int64_t selectedSnapshot) override {}
         void OnPluginPresetsChanged(const std::string &pluginUri) override {}

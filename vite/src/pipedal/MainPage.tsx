@@ -56,6 +56,8 @@ import SnapshotStrip from './SnapshotStrip';
 import GigView from './GigView';
 import TunerOverlay from './TunerOverlay';
 import TempoSyncPicker from './TempoSyncPicker';
+import { startIdleDim } from './IdleDim';
+import { onScreenKeyboardEnabled } from './OnScreenKeyboard';
 import { STAGE } from './StageTheme';
 import Snapshot0Icon from "./svg/snapshot_0.svg?react";
 import Snapshot1Icon from "./svg/snapshot_1.svg?react";
@@ -310,6 +312,8 @@ export const MainPage =
                 }
 
                 componentDidMount() {
+
+                    if (onScreenKeyboardEnabled()) startIdleDim(this.model); // kiosk only
                     super.componentDidMount();
                     this.model.pedalboard.addOnChangedHandler(this.onPedalboardChanged);
                     this.model.selectedSnapshot.addOnChangedHandler(this.onSelectedSnapshotChanged);
