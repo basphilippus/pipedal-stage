@@ -17,7 +17,7 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import { ReactNode } from 'react';
+import React, { ReactNode } from 'react';
 import { STAGE } from './StageTheme';
 import { Theme } from '@mui/material/styles';
 import WithStyles, { withTheme } from './WithStyles';
@@ -48,6 +48,7 @@ import { PiPedalStateError } from './PiPedalError';
 import Typography from '@mui/material/Typography';
 import FullScreenIME from './FullScreenIME';
 import FilePropertyControl from './FilePropertyControl';
+import { isStageTheme } from './DarkMode';
 import FilePropertyDialog from './FilePropertyDialog';
 import JsonAtom from './JsonAtom';
 import PluginOutputControl from './PluginOutputControl';
@@ -489,11 +490,23 @@ const PluginControlView =
                 });
             }
 
-            makeFilePropertyUI(fileProperty: UiFileProperty): ReactNode {
+            // Stage: badges for the hero headline (NAM: model architecture + threading).
+            heroBadges(plugin: UiPlugin, controlValues: ControlValue[]): string[] {
+                let badges: string[] = [];
+                if (plugin.uri === "http://two-play.com/plugins/toob-nam") {
+                    let cv = (key: string) => controlValues.find((c) => c.key === key)?.value;
+                    let modelType = cv("modelType");
+                    if (modelType === 1) badges.push("A1");
+                    else if (modelType === 2) badges.push("A2");
+                    if ((cv("buffer") ?? 0) >= 0.5) badges.push("THREADED");
+                }
+                return badges;
+            }
+            makeFilePropertyUI(fileProperty: UiFileProperty, hero: boolean = false, badges: string[] = [], heroLabel?: string): ReactNode {
                 return ((
 
                     <FilePropertyControl pedalboardItem={this.props.item}
-                        fileProperty={fileProperty}
+                        fileProperty={fileProperty} hero={hero} badges={badges} heroLabel={heroLabel}
                         onFileClick={(fileProperty, selectedFile) => {
                             this.setState({ showFileDialog: true, dialogFileProperty: fileProperty, dialogFileValue: selectedFile });
                         }}
@@ -721,9 +734,27 @@ const PluginControlView =
                         }
                     }
                 }
+                // Stage: one file property becomes the block's headline (NAM model, cab IR). Prefer the
+                // property without a numeric suffix (Cab IR lists impulseFile3 first). Ungrouped: it keeps
+                // its slot in the controls array (custom views index into it) and floats up via CSS order.
+                // Grouped: it is lifted out of its group to the front, only for plugins without a custom view.
+                let heroIndex = -1;
+                if (isStageTheme() && plugin.fileProperties.length > 0) {
+                    heroIndex = 0;
+                    for (let i = 0; i < plugin.fileProperties.length; ++i) {
+                        if (!/[0-9]$/.test(plugin.fileProperties[i].patchProperty)) { heroIndex = i; break; }
+                    }
+                }
                 for (let i = 0; i < plugin.fileProperties.length; ++i) {
                     let fileProperty = plugin.fileProperties[i];
-                    let filePropertyUi = this.makeFilePropertyUI(fileProperty);
+                    let grouped = fileProperty.portGroup !== "" && !!plugin.getPortGroupByUri(fileProperty.portGroup);
+                    let hero = i === heroIndex && (!grouped || !this.props.customization);
+                    let heroLabel = grouped ? nullCast(plugin.getPortGroupByUri(fileProperty.portGroup)).name : fileProperty.label;
+                    let filePropertyUi = this.makeFilePropertyUI(fileProperty, hero, hero ? this.heroBadges(plugin, controlValues) : [], heroLabel);
+                    if (hero && grouped) {
+                        result.unshift(filePropertyUi);
+                        continue;
+                    }
 
                     if (fileProperty.portGroup !== "" && plugin.getPortGroupByUri(fileProperty.portGroup)) {
                         let portGroup = nullCast(plugin.getPortGroupByUri(fileProperty.portGroup));
@@ -861,8 +892,11 @@ const PluginControlView =
                                 </div>
                             );
                         } else {
+                            // Stage hero (first file property): the wrapper floats to the top at full width.
+                            let isHero = React.isValidElement(node) && (node.props as any)?.hero === true;
                             result.push((
-                                <div key={"ctl" + (this.controlKeyIndex++)} className={hasGroups ? classes.portgroupControlPadding : classes.controlPadding} >
+                                <div key={"ctl" + (this.controlKeyIndex++)} className={hasGroups ? classes.portgroupControlPadding : classes.controlPadding}
+                                    style={isHero ? { order: -1, flex: "1 1 100%", width: "100%", boxSizing: "border-box" } : undefined} >
                                     {node as ReactNode}
                                 </div>
                             ));

@@ -31,6 +31,10 @@ import { UiFileProperty } from './Lv2Plugin';
 import Typography from '@mui/material/Typography';
 import { PiPedalModel, PiPedalModelFactory, ListenHandle, State } from './PiPedalModel';
 import ButtonBase from '@mui/material/ButtonBase'
+import { isStageTheme } from './DarkMode';
+import { STAGE } from './StageTheme';
+import MarqueeText from './MarqueeText';
+import { FolderOpen as LucideFolderOpen } from 'lucide-react';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import { PedalboardItem } from './Pedalboard';
 import { isDarkMode } from './DarkMode';
@@ -92,6 +96,9 @@ const styles = (theme: Theme) => {
 export interface FilePropertyControlProps extends WithStyles<typeof styles> {
     fileProperty: UiFileProperty;
     pedalboardItem: PedalboardItem;
+    hero?: boolean;       // Stage: full-width headline (model / IR name) instead of the small control
+    badges?: string[];    // Stage hero: small chips (e.g. "A2", "THREADED")
+    heroLabel?: string;   // Stage hero caption (defaults to the property label)
     onFileClick: (fileProperty: UiFileProperty, value: string) => void;
     theme: Theme;
 }
@@ -219,6 +226,33 @@ const FilePropertyControl =
                     value = safeFilenameDecode(this.fileNameOnly(this.state.value));
                     toolTipText = value;
                 }
+            }
+
+            if (this.props.hero && isStageTheme()) {
+                let empty = !this.state.hasValue || this.state.value.length === 0;
+                return (
+                    <div className="stage-hero" onClick={() => { this.onFileClick(); }} title={toolTipText ?? undefined}
+                        style={{
+                            order: -1, flex: "1 1 100%", width: "100%", boxSizing: "border-box",
+                            display: "flex", alignItems: "center", gap: 14, padding: "0 12px 6px 12px", marginBottom: 2,
+                            borderBottom: `1px solid ${STAGE.border}`, cursor: "pointer", userSelect: "none", WebkitTapHighlightColor: "transparent",
+                        }}>
+                        <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+                            <div style={{ fontFamily: STAGE.displayFont, fontSize: 10, letterSpacing: "0.2em", color: STAGE.accent, marginBottom: 1 }}>
+                                {(this.props.heroLabel ?? fileProperty.label).toUpperCase()}
+                            </div>
+                            <MarqueeText text={empty ? "Tap to choose…" : value}
+                                style={{ fontFamily: STAGE.displayFont, fontSize: 25, lineHeight: 1.1, color: empty ? STAGE.textDim : STAGE.text }} />
+                        </div>
+                        {(this.props.badges ?? []).map((b) => (
+                            <span key={b} style={{
+                                flex: "0 0 auto", fontFamily: STAGE.displayFont, fontSize: 10, letterSpacing: "0.16em", color: STAGE.textDim,
+                                border: `1px solid ${STAGE.border}`, borderRadius: 999, padding: "3px 9px",
+                            }}>{b}</span>
+                        ))}
+                        <LucideFolderOpen size={20} strokeWidth={1.75} style={{ flex: "0 0 auto", color: STAGE.textDim }} />
+                    </div>
+                );
             }
 
             let item_width = 264;
