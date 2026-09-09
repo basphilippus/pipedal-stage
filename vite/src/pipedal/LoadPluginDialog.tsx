@@ -28,6 +28,11 @@ import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import PluginInfoDialog from './PluginInfoDialog'
 import PluginIcon from './PluginIcon'
+import StagePluginIcon from './StagePluginIcon';
+import MarqueeText from './MarqueeText';
+import { isStageTheme } from './DarkMode';
+import { STAGE } from './StageTheme';
+import { Star as LucideStar } from 'lucide-react';
 import DialogEx from './DialogEx';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -589,7 +594,7 @@ export const LoadPluginDialog =
                             }
                         }
                         if (position !== -1) {
-                            element.scrollToItem({ rowIndex: Math.floor(position / this.state.grid_cell_columns) });
+                            element.scrollToItem({ rowIndex: Math.floor(position / this.gridColumnCount), align: "center" });
                         }
                     }
                 }
@@ -647,6 +652,36 @@ export const LoadPluginDialog =
                 let pluginType = value.plugin_type;
                 if (value.uri === "http://two-play.com/plugins/toob-nam") {
                     pluginType = PluginType.NamPlugin;
+                }
+                if (isStageTheme()) {
+                    // Stage: glyph tile grid. Tap selects, double-tap loads.
+                    let selected = value.uri === this.state.selected_uri;
+                    return (
+                        <div key={value.uri} style={{ padding: 6, height: "100%", boxSizing: "border-box" }}
+                            onDoubleClick={(e) => { this.onDoubleClick(e, value.uri) }}
+                            onClick={(e) => { this.onClick(e, value.uri) }}>
+                            <div className="plugin-tile" style={{
+                                height: "100%", boxSizing: "border-box", borderRadius: 12, position: "relative",
+                                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 8px 8px 8px",
+                                border: `1px solid ${selected ? STAGE.accent : STAGE.border}`,
+                                background: selected ? `linear-gradient(180deg, rgba(245,165,36,0.18), rgba(245,165,36,0.06)), ${STAGE.panel}` : STAGE.panelGradient,
+                                boxShadow: selected ? `0 0 0 1px ${STAGE.accent}55, 0 0 22px 0 ${STAGE.accent}33` : STAGE.shadow,
+                                cursor: "pointer", userSelect: "none", WebkitTapHighlightColor: "transparent",
+                                transition: `border-color ${STAGE.ease}, box-shadow ${STAGE.ease}, background ${STAGE.ease}`,
+                            }}>
+                                {isFavorite && (
+                                    <LucideStar size={14} strokeWidth={1.75} fill={STAGE.accent} style={{ position: "absolute", top: 8, right: 8, color: STAGE.accent }} />
+                                )}
+                                <StagePluginIcon pluginType={pluginType} size={38} hintName={value.name} />
+                                <MarqueeText text={value.name} lines={2} style={{
+                                    width: "100%", textAlign: "center", fontFamily: STAGE.displayFont, fontSize: 14, lineHeight: 1.15, color: STAGE.text,
+                                }} />
+                                <span style={{ fontFamily: STAGE.bodyFont, fontSize: 10.5, letterSpacing: "0.04em", color: STAGE.textDim, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
+                                    {value.plugin_display_type}{this.stereo_indicator(value)}
+                                </span>
+                            </div>
+                        </div>
+                    );
                 }
                 return (
                     <div key={value.uri}
@@ -823,6 +858,9 @@ export const LoadPluginDialog =
                                             }
                                             let width = arg.width ?? 1;
                                             let height = arg.height ?? 1;
+                                            if (isStageTheme()) {
+                                                this.gridColumnCount = Math.max(3, Math.min(8, Math.floor((width - 40) / 150))); // glyph tiles ~150 px
+                                            }
                                             let gridItems = this.getFilteredPlugins(
                                                 this.state.uiPlugins, this.state.search_string, this.state.filterType, this.state.favoritesList);
                                             this.cachedGridItems = gridItems;
@@ -837,7 +875,7 @@ export const LoadPluginDialog =
                                                     columnCount={this.gridColumnCount}
                                                     columnWidth={(width - 40) / this.gridColumnCount}
                                                     height={height}
-                                                    rowHeight={64}
+                                                    rowHeight={isStageTheme() ? 150 : 64}
                                                     overscanRowCount={10}
                                                     rowCount={Math.ceil(gridItems.length / this.gridColumnCount)}
                                                     itemKey={(args: { columnIndex: number, data: any, rowIndex: number }) => {
